@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏸 โปรแกรมคำนวณค่าลูกแบดมินตัน</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/1041/1041168.png">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1d4ed8;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --surface: #ffffff;
+            --surface-alt: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #d97706;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Sarabun', sans-serif; background: #f1f5f9; color: var(--text); }
+
+        /* --- TABS --- */
+        .tab-nav { display: flex; background: white; border-radius: 12px; padding: 4px; gap: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .tab-btn { flex: 1; padding: 10px 8px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 600; color: #64748b; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .tab-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(29,78,216,.35); }
+        .tab-btn:hover:not(.active) { background: #f1f5f9; color: var(--primary); }
+
+        /* --- CARDS --- */
+        .card { background: white; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); overflow: hidden; }
+        .card-header { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+        .card-header h2 { font-size: 16px; font-weight: 700; margin: 0; }
+        .card-body { padding: 20px; }
+        .section-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+
+        /* --- FORMS --- */
+        .form-control { width: 100%; padding: 10px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-family: 'Sarabun', sans-serif; font-size: 14px; transition: border-color .2s, box-shadow .2s; background: white; }
+        .form-control:focus { outline: none; border-color: var(--primary-light); box-shadow: 0 0 0 3px rgba(59,130,246,.12); }
+        .form-select { appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 10px center; background-repeat: no-repeat; background-size: 18px; padding-right: 36px; }
+        .form-label { display: block; font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+
+        /* --- BUTTONS --- */
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 10px 16px; border-radius: 8px; font-family: 'Sarabun', sans-serif; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all .2s; white-space: nowrap; }
+        .btn:disabled { opacity: .5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background: var(--primary-dark); box-shadow: 0 4px 12px rgba(29,78,216,.3); }
+        .btn-success { background: #16a34a; color: white; }
+        .btn-success:hover:not(:disabled) { background: #15803d; }
+        .btn-danger { background: #dc2626; color: white; }
+        .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover:not(:disabled) { background: #b45309; }
+        .btn-secondary { background: #f1f5f9; color: #475569; border: 1.5px solid var(--border); }
+        .btn-secondary:hover:not(:disabled) { background: #e2e8f0; }
+        .btn-ghost { background: transparent; color: var(--text-muted); padding: 6px 8px; }
+        .btn-ghost:hover { background: #f1f5f9; color: var(--text); }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-icon { padding: 7px; border-radius: 8px; }
+        .btn-indigo { background: #4f46e5; color: white; }
+        .btn-indigo:hover:not(:disabled) { background: #4338ca; }
+
+        /* --- PLAYER CARDS --- */
+        .player-chip { position: relative; display: flex; align-items: flex-start; justify-content: space-between; padding: 10px 10px; border-radius: 10px; border: 2px solid; cursor: pointer; transition: all .15s; user-select: none; min-height: 52px; }
+        .player-chip .chip-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .15s; flex-shrink: 0; }
+        @media (hover: none) { .player-chip .chip-actions { opacity: 1; } }
+        .player-chip:hover .chip-actions { opacity: 1; }
+        .player-chip.absent { background: #f8fafc !important; border-color: #e2e8f0 !important; color: #94a3b8 !important; }
+
+        /* --- STAT CARDS --- */
+        .stat-card { border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+        .stat-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+        .stat-value { font-size: 22px; font-weight: 700; line-height: 1.1; }
+        .stat-label { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+        /* --- GAME CARDS --- */
+        .game-card { background: white; border-radius: 10px; border: 1.5px solid var(--border); overflow: hidden; transition: box-shadow .2s; }
+        .game-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+        .game-card-header { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); background: #f8fafc; }
+        .game-card-body { padding: 12px 14px; }
+        .player-tag { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 700; color: white; }
+
+        /* --- TABLE --- */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        .data-table th { padding: 10px 14px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; background: #f8fafc; border-bottom: 2px solid var(--border); color: var(--text-muted); }
+        .data-table th.text-right { text-align: right; }
+        .data-table th.text-center { text-align: center; }
+        .data-table td { padding: 11px 14px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+        .data-table td.text-right { text-align: right; }
+        .data-table td.text-center { text-align: center; }
+        .data-table tbody tr:hover { background: #fafafa; }
+        .data-table tbody tr:last-child td { border-bottom: none; }
+        .data-table tfoot td { padding: 12px 14px; font-weight: 700; background: #f8fafc; border-top: 2px solid var(--border); }
+        .sticky-col { position: sticky; left: 0; z-index: 2; background: white; }
+        .data-table thead th.sticky-col { z-index: 3; background: #f8fafc; }
+        .data-table tfoot td.sticky-col { background: #f8fafc; }
+
+        /* --- BADGES --- */
+        .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .badge-success { background: #dcfce7; color: #15803d; }
+        .badge-danger { background: #fee2e2; color: #b91c1c; }
+        .badge-info { background: #dbeafe; color: #1d4ed8; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; backdrop-filter: blur(2px); }
+        .modal-box { background: white; border-radius: 16px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,.2); overflow: hidden; }
+        .modal-header { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 14px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+
+        /* --- EXPAND ROWS --- */
+        .details-row { display: none; }
+        .details-row.show { display: table-row; }
+        .rotate-180 { transform: rotate(180deg); }
+
+        /* --- LOADER --- */
+        .loader { border: 3px solid #e2e8f0; border-top-color: var(--primary); border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* --- MISC --- */
+        .empty-state { text-align: center; padding: 32px 16px; color: var(--text-muted); }
+        .empty-state i { font-size: 36px; margin-bottom: 10px; display: block; opacity: .4; }
+        select option:disabled { color: #d1d5db; }
+        .overflow-x-auto { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .section-divider { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; padding: 6px 14px; }
+
+        /* --- TAB BADGE --- */
+        .tab-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; border-radius: 9px; font-size: 11px; font-weight: 800; padding: 0 5px; margin-left: 5px; background: #ef4444; color: white; line-height: 1; }
+        .tab-btn.active .tab-badge { background: white; color: #dc2626; }
+    </style>
+</head>
+<body>
+
+<div class="container mx-auto p-3 sm:p-4 max-w-6xl">
+
+    <header class="mb-5">
+        <div class="card">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                        <h1 class="text-2xl font-bold text-blue-700">🏸 โปรแกรมคำนวณค่าลูกแบดมินตัน</h1>
+                        <p class="text-sm text-gray-500 mt-1">ระบบบันทึกเกม คำนวณค่าใช้จ่าย และจัดการบัญชี</p>
+                    </div>
+                    <div class="flex flex-col sm:flex-row gap-2 items-start sm:items-center">
+                        <div class="flex items-center gap-2">
+                            <label for="workingDate" class="text-sm font-semibold text-gray-600 whitespace-nowrap">📅 วันที่เล่น:</label>
+                            <input type="date" id="workingDate" class="form-control" style="width:auto;">
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="btnSave" class="btn btn-success btn-sm"><i class="fas fa-save"></i><span class="hidden sm:inline">บันทึกไฟล์</span></button>
+                            <label for="loadFile" class="btn btn-indigo btn-sm cursor-pointer"><i class="fas fa-folder-open"></i><span class="hidden sm:inline">โหลดไฟล์</span></label>
+                            <input type="file" id="loadFile" class="hidden" accept=".json">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="tab-nav mb-5">
+        <button class="tab-btn active" data-tab="daily"><i class="fas fa-calculator"></i><span>คิดเงินรายวัน</span><span id="badge-daily" class="tab-badge" style="display:none;"></span></button>
+        <button class="tab-btn" data-tab="account"><i class="fas fa-wallet"></i><span>บัญชีรวม</span><span id="badge-account" class="tab-badge" style="display:none;"></span></button>
+        <button class="tab-btn" data-tab="history"><i class="fas fa-history"></i><span>ประวัติ</span></button>
+    </div>
+
+    <div id="tab-daily" class="tab-content space-y-4">
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-blue-100 text-blue-600"><i class="fas fa-users"></i></div>
+                <h2 class="text-blue-700">1. จัดการรายชื่อผู้เล่น</h2>
+            </div>
+            <div class="card-body space-y-3">
+                <p class="text-sm text-gray-500">คลิกที่ชื่อ = เลือก/ยกเลิกการมาวันนี้ &nbsp;|&nbsp; ✏️ เปลี่ยนชื่อ &nbsp;|&nbsp; 🗑️ ลบออกจากระบบ</p>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <select id="newPlayerPrefix" class="form-control form-select" style="width:auto; flex-shrink:0;">
+                        <option value="ทั่วไป">ทั่วไป</option>
+                        <option value="ตากฟ้า">ตากฟ้า</option>
+                        <option value="ตาคลี">ตาคลี</option>
+                        <option value="ไพศาลี">ไพศาลี</option>
+                        <option value="ชัยนาท">ชัยนาท</option>
+                        <option value="นครสวรรค์">นครสวรรค์</option>
+                        <option value="กองบิน4">กองบิน4</option>
+                    </select>
+                    <input type="text" id="newPlayerName" class="form-control flex-1" placeholder="พิมพ์ชื่อผู้เล่นใหม่...">
+                    <button id="btnAddPlayer" class="btn btn-primary"><i class="fas fa-user-plus"></i>เพิ่มผู้เล่น</button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button id="btnClearTodayPlayers" class="btn btn-danger btn-sm"><i class="fas fa-user-times"></i>ล้างรายชื่อวันนี้</button>
+                    <button id="btnClearAllPlayers" class="btn btn-secondary btn-sm"><i class="fas fa-users-slash"></i>ล้างรายชื่อทั้งหมด</button>
+                </div>
+                <div id="playerList" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-green-100 text-green-600"><i class="fas fa-gamepad"></i></div>
+                <h2 class="text-green-700">2. บันทึกเกม</h2>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div><label class="form-label">ผู้เล่น 1 (ทีม A)</label><select id="player1" class="form-control form-select"></select></div>
+                    <div><label class="form-label">ผู้เล่น 2 (ทีม A)</label><select id="player2" class="form-control form-select"></select></div>
+                    <div><label class="form-label">ผู้เล่น 3 (ทีม B)</label><select id="player3" class="form-control form-select"></select></div>
+                    <div><label class="form-label">ผู้เล่น 4 (ทีม B)</label><select id="player4" class="form-control form-select"></select></div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label">เบอร์ลูกที่ใช้ <span class="text-gray-400 font-normal">(คั่นด้วย , หรือเว้นวรรค)</span></label>
+                        <input type="text" id="shuttlecockSpeeds" class="form-control" placeholder="เช่น 75, 76, 75">
+                    </div>
+                    <div>
+                        <label class="form-label">ราคาต่อลูก (บาท)</label>
+                        <input type="number" id="shuttlecockPrice" class="form-control" value="0" min="0" step="1">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button id="btnRecordGame" class="btn btn-success flex-1 text-base"><i class="fas fa-plus-circle"></i>บันทึกเกมนี้</button>
+                    <button id="btnUseLastTeam" class="btn btn-secondary" title="เลือกทีมเดิมจากเกมล่าสุด"><i class="fas fa-redo-alt"></i><span class="hidden sm:inline">ทีมเดิม</span></button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-purple-100 text-purple-600"><i class="fas fa-chart-bar"></i></div>
+                <h2 class="text-purple-700">3. ภาพรวมประจำวัน</h2>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div class="stat-card bg-blue-50">
+                        <div class="stat-icon bg-blue-200 text-blue-700"><i class="fas fa-layer-group"></i></div>
+                        <div><div class="stat-value text-blue-700" id="totalGames">0</div><div class="stat-label">เกมทั้งหมด</div></div>
+                    </div>
+                    <div class="stat-card bg-green-50">
+                        <div class="stat-icon bg-green-200 text-green-700"><i class="fas fa-circle"></i></div>
+                        <div><div class="stat-value text-green-700" id="totalShuttlecocks">0</div><div class="stat-label">ลูกทั้งหมด</div></div>
+                    </div>
+                    <div class="stat-card bg-gray-50 col-span-2 md:col-span-1">
+                        <div class="stat-icon bg-gray-200 text-gray-600"><i class="fas fa-sort-numeric-up"></i></div>
+                        <div><div class="stat-label mb-1">สรุปลูกตามเบอร์</div><div id="shuttlecockSpeedSummary" class="text-sm font-semibold text-gray-700">-</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-orange-100 text-orange-600"><i class="fas fa-list"></i></div>
+                <h2 class="text-orange-700">4. เกมที่บันทึกแล้ว</h2>
+                <button id="btnExportGamesImg" class="btn btn-sm ml-auto" style="background:#f97316;color:white;"><i class="fas fa-image"></i>ส่งออกรูป</button>
+            </div>
+            <div class="card-body">
+                <div id="gamesList" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-teal-100 text-teal-600"><i class="fas fa-receipt"></i></div>
+                <h2 class="text-teal-700">5. สรุปค่าใช้จ่ายประจำวัน</h2>
+                <div class="ml-auto flex flex-wrap gap-2">
+                    <button id="btnExportSummaryImg" class="btn btn-sm" style="background:#0d9488;color:white;"><i class="fas fa-image"></i>ส่งออกรูป</button>
+                    <button id="btnConfirmSave" class="btn btn-primary btn-sm"><i class="fas fa-check-circle"></i>ยืนยัน&บันทึกลงบัญชี</button>
+                    <button id="btnClearToday" class="btn btn-danger btn-sm"><i class="fas fa-eraser"></i>ล้างข้อมูลวันนี้</button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="overflow-x-auto">
+                    <table class="data-table" id="summaryTable">
+                        <thead>
+                            <tr>
+                                <th class="sticky-col">ชื่อผู้เล่น</th>
+                                <th class="text-center">เกมที่เล่น</th>
+                                <th class="text-center">เบอร์ลูก</th>
+                                <th class="text-center">ค่าลูก (฿)</th>
+                                <th class="text-center">สถานะ</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="summaryTableUnpaid"></tbody>
+                        <tbody id="summaryTablePaid"></tbody>
+                        <tfoot>
+                            <tr>
+                                <td class="sticky-col" colspan="3">รวมทั้งหมด</td>
+                                <td class="text-center" id="grandTotal">0.00</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div><div id="tab-account" class="tab-content hidden space-y-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-blue-100 text-blue-600"><i class="fas fa-wallet"></i></div>
+                <h2 class="text-blue-700">สรุปยอดรวมบัญชีทั้งหมด</h2>
+                <div class="ml-auto flex flex-wrap gap-2">
+                    <button id="btnExportAccountImg" class="btn btn-sm" style="background:#7c3aed;color:white;"><i class="fas fa-image"></i>ส่งออกรูป</button>
+                    <button id="btnExportAccountText" class="btn btn-sm" style="background:#0891b2;color:white;"><i class="fab fa-line"></i>ส่ง LINE</button>
+                    <button id="btnPayAllUnpaid" class="btn btn-sm" style="background:#16a34a;color:white;"><i class="fas fa-hand-holding-usd"></i>ชำระทั้งหมด</button>
+                    <button id="btnOpenQuickDebt" class="btn btn-danger btn-sm"><i class="fas fa-file-invoice"></i>บันทึกหนี้โดยตรง</button>
+                </div>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="relative mb-2">
+                    <input type="text" id="searchAccountInput" class="form-control pl-10" placeholder="🔍 ค้นหาชื่อผู้เล่น..." style="max-width: 320px; border-radius: 20px;">
+                </div>
+                
+                <p class="text-sm text-gray-500">ข้อมูล ณ วันที่: <span id="account-summary-date" class="font-semibold text-gray-700"></span></p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="stat-card bg-red-50"><div class="stat-icon bg-red-200 text-red-700"><i class="fas fa-exclamation-circle"></i></div><div><div class="stat-value text-red-700" id="total-unpaid-overall">฿0</div><div class="stat-label">ค้างชำระรวม</div></div></div>
+                    <div class="stat-card bg-blue-50"><div class="stat-icon bg-blue-200 text-blue-700"><i class="fas fa-coins"></i></div><div><div class="stat-value text-blue-700" id="total-credit-overall">฿0</div><div class="stat-label">เครดิตรวม</div></div></div>
+                    <div class="stat-card bg-amber-50"><div class="stat-icon bg-amber-200 text-amber-700"><i class="fas fa-circle"></i></div><div><div class="stat-value text-amber-700" id="total-shuttlecock-overall">฿0</div><div class="stat-label">ค่าลูกรวม</div></div></div>
+                    <div class="stat-card bg-cyan-50"><div class="stat-icon bg-cyan-200 text-cyan-700"><i class="fas fa-users"></i></div><div><div class="stat-value text-cyan-700" id="players-count-overall">0</div><div class="stat-label">จำนวนผู้เล่น</div></div></div>
+                </div>
+                <div>
+                    <div class="section-divider text-red-600 bg-red-50 rounded-md mb-2">⚠️ ผู้ที่ค้างชำระ (คลิกเพื่อชำระเงิน)</div>
+                    <div id="unpaid-list-overall" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                </div>
+                <div>
+                    <div class="section-divider text-blue-600 bg-blue-50 rounded-md mb-2">💰 ผู้ที่มีเครดิต</div>
+                    <div id="credit-list-overall" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                </div>
+                <div>
+                    <div class="section-divider text-green-600 bg-green-50 rounded-md mb-2">✅ ผู้ที่ชำระครบแล้ว</div>
+                    <div id="paid-in-full-list-overall" class="grid grid-cols-1 md:grid-cols-2 gap-2"></div>
+                </div>
+            </div>
+        </div>
+    </div><div id="tab-history" class="tab-content hidden space-y-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-indigo-100 text-indigo-600"><i class="fas fa-history"></i></div>
+                <h2 class="text-indigo-700">สรุปยอดตามช่วงวันที่</h2>
+                <button id="btnRefreshHistory" class="btn btn-secondary btn-sm ml-auto"><i class="fas fa-sync-alt"></i>รีเฟรช</button>
+            </div>
+            <div class="card-body space-y-4">
+                <div class="flex flex-wrap items-end gap-3 p-4 bg-gray-50 rounded-lg border">
+                    <div>
+                        <label class="form-label">จากวันที่</label>
+                        <input type="date" id="summaryStartDate" class="form-control">
+                    </div>
+                    <div>
+                        <label class="form-label">ถึงวันที่</label>
+                        <input type="date" id="summaryEndDate" class="form-control">
+                    </div>
+                    <button id="btnFilterHistory" class="btn btn-primary"><i class="fas fa-filter"></i>แสดงสรุป</button>
+                </div>
+                <p class="text-sm text-gray-500">ข้อมูล ณ: <span id="history-current-date" class="font-semibold text-gray-700"></span></p>
+                <div id="overall-summary-content">
+                    <div class="empty-state"><i class="fas fa-calendar-alt"></i>กรุณาเลือกช่วงวันที่แล้วกด "แสดงสรุป"</div>
+                </div>
+            </div>
+        </div>
+    </div></div><div id="payment-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-green-700"><i class="fas fa-hand-holding-usd mr-2"></i>ชำระเงินด่วน</h3>
+            <button class="btn-ghost btn-icon btn" id="btnClosePayment"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body space-y-3">
+            <p class="text-gray-700">ชำระยอดค้างสำหรับ: <strong id="payment-name" class="text-blue-700"></strong></p>
+            <input type="hidden" id="payment-hidden-name">
+            <div>
+                <label class="form-label">จำนวนเงิน (บาท)</label>
+                <input type="number" step="any" id="payment-amount" class="form-control text-lg" placeholder="0.00" min="0.01">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelPayment">ยกเลิก</button>
+            <button class="btn btn-success" id="btnSubmitPayment"><i class="fas fa-check"></i>ยืนยันชำระ</button>
+        </div>
+    </div>
+</div>
+
+<div id="quick-debt-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-red-700"><i class="fas fa-file-invoice mr-2"></i>บันทึกหนี้โดยตรง</h3>
+            <button class="btn-ghost btn-icon btn" id="btnCloseDebt"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body space-y-3">
+            <div>
+                <label class="form-label">วันที่</label>
+                <input type="date" id="debt-date" class="form-control">
+            </div>
+            <div>
+                <label class="form-label">ชื่อผู้เล่น</label>
+                <select id="debt-player-name" class="form-control form-select"></select>
+            </div>
+            <div>
+                <label class="form-label">ยอดหนี้ (บาท)</label>
+                <input type="number" step="any" id="debt-amount" class="form-control text-lg" placeholder="0.00" min="0.01">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelDebt">ยกเลิก</button>
+            <button class="btn btn-danger" id="btnSubmitDebt"><i class="fas fa-plus"></i>บันทึกหนี้</button>
+        </div>
+    </div>
+</div>
+
+<div id="rename-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <div class="modal-header">
+            <h3 class="text-lg font-bold text-blue-700"><i class="fas fa-edit mr-2"></i>เปลี่ยนชื่อผู้เล่น</h3>
+            <button class="btn-ghost btn-icon btn" id="btnCloseRename"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body space-y-3">
+            <p class="text-gray-600">ชื่อเดิม: <strong id="rename-old-display" class="text-gray-800"></strong></p>
+            <input type="hidden" id="rename-old-name">
+            <div>
+                <label class="form-label">ชื่อใหม่</label>
+                <input type="text" id="rename-new-name" class="form-control" placeholder="ใส่ชื่อใหม่">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="btnCancelRename">ยกเลิก</button>
+            <button class="btn btn-primary" id="btnSubmitRename"><i class="fas fa-check"></i>ยืนยัน</button>
+        </div>
+    </div>
+</div>
+
+<script>
+'use strict';
+
+// ============================================================
+// CONSTANTS & STATE
+// ============================================================
+const TOLERANCE = 0.005;
+const STORAGE_KEY = 'badmintonAppState_v2';
+
+const PLAYER_COLORS = [
+    { bg: '#fee2e2', border: '#fca5a5', text: '#991b1b', tag: '#ef4444' },
+    { bg: '#dbeafe', border: '#93c5fd', text: '#1e40af', tag: '#3b82f6' },
+    { bg: '#dcfce7', border: '#86efac', text: '#166534', tag: '#22c55e' },
+    { bg: '#fef9c3', border: '#fde047', text: '#713f12', tag: '#eab308' },
+    { bg: '#ede9fe', border: '#c4b5fd', text: '#4c1d95', tag: '#8b5cf6' },
+    { bg: '#fce7f3', border: '#f9a8d4', text: '#831843', tag: '#ec4899' },
+    { bg: '#ccfbf1', border: '#5eead4', text: '#134e4a', tag: '#14b8a6' },
+    { bg: '#ffedd5', border: '#fdba74', text: '#7c2d12', tag: '#f97316' },
+];
+
+let state = createDefaultState();
+let selectedDate = getTodayString();
+let currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+let _gameIdCounter = Date.now(); // counter ป้องกัน ID ชนกัน
+let _isDailyDirty = false; // แจ้งเตือนเมื่อลืมกดบันทึกและพยายามออกจากหน้าเว็บ
+
+function generateGameId() {
+    return ++_gameIdCounter;
+}
+
+function syncGameIdCounter() {
+    // หา game ID สูงสุดใน state ทั้งหมด แล้วตั้ง counter ให้สูงกว่า
+    let maxId = _gameIdCounter;
+    Object.values(state.dailyData || {}).forEach(daily => {
+        (daily.games || []).forEach(g => {
+            if (typeof g.id === 'number' && g.id > maxId) maxId = g.id;
+        });
+    });
+    _gameIdCounter = maxId;
+}
+
+function createDefaultState() {
+    return { masterPlayerList: [], allTransactions: [], allPayments: [], dailyData: {}, settings: { shuttlecockPrice: 0 } };
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function getTodayString() {
+    const d = new Date();
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
+}
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.appendChild(document.createTextNode(str));
+    return d.innerHTML;
+}
+
+function formatCurrency(amount) {
+    return '฿' + parseFloat(amount || 0).toLocaleString('th-TH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function getPlayerColor(name) {
+    if (!name) return PLAYER_COLORS[0];
+    const sum = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
+    return PLAYER_COLORS[sum % PLAYER_COLORS.length];
+}
+
+function getCurrentDailyData() {
+    if (!state.dailyData[selectedDate]) state.dailyData[selectedDate] = { players: [], games: [] };
+    return state.dailyData[selectedDate];
+}
+
+// ============================================================
+// STORAGE
+// ============================================================
+let _storageFailed = false; // ป้องกัน toast ซ้ำ
+
+function saveToStorage() {
+    try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        _storageFailed = false; // รีเซ็ตสถานะเมื่อบันทึกสำเร็จ
+    } catch (e) {
+        console.error('Storage save failed', e);
+        if (!_storageFailed) {
+            _storageFailed = true;
+            Swal.fire({
+                icon: 'error',
+                title: '⚠️ บันทึกข้อมูลไม่สำเร็จ!',
+                html: `<p>พื้นที่จัดเก็บในเครื่องเต็มหรือถูกบล็อก</p>
+                       <p style="margin-top:8px;font-size:13px;color:#64748b;">กรุณากด "บันทึกไฟล์" เพื่อสำรองข้อมูลออกมาก่อน แล้วลองล้างข้อมูลเก่าออก</p>`,
+                confirmButtonText: '🗂️ บันทึกไฟล์ทันที',
+                showCancelButton: true,
+                cancelButtonText: 'ปิด',
+                confirmButtonColor: '#1d4ed8'
+            }).then(r => { if (r.isConfirmed) saveToFile(); });
+        }
+    }
+}
+
+function loadFromStorage() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) state = JSON.parse(raw) || createDefaultState();
+        else state = createDefaultState();
+    } catch { state = createDefaultState(); }
+}
+
+function ensureIntegrity() {
+    state.settings = state.settings || {};
+    state.settings.shuttlecockPrice = state.settings.shuttlecockPrice || 0;
+    state.masterPlayerList = state.masterPlayerList || [];
+    state.allTransactions = state.allTransactions || [];
+    state.allPayments = state.allPayments || [];
+    state.dailyData = state.dailyData || {};
+    if (!state.dailyData[selectedDate]) state.dailyData[selectedDate] = { players: [], games: [] };
+    const dd = state.dailyData[selectedDate];
+    dd.players = dd.players || [];
+    dd.games = dd.games || [];
+    dd.players.forEach(p => {
+        if (p.paid === undefined) p.paid = false;
+        if (p.present === undefined) p.present = true;
+    });
+}
+
+function saveToFile() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `badminton-${getTodayString()}.json`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+    Swal.fire({ icon: 'success', title: 'บันทึกไฟล์สำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+}
+
+function loadFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const loaded = JSON.parse(e.target.result);
+            if (loaded && 'masterPlayerList' in loaded && 'dailyData' in loaded) {
+                state = loaded;
+                ensureIntegrity();
+                syncGameIdCounter(); 
+                applySettingsToUI();
+                updateAndRender();
+                switchTab('daily');
+                Swal.fire({ icon: 'success', title: 'โหลดข้อมูลสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+            } else throw new Error('Invalid format');
+        } catch { Swal.fire('เกิดข้อผิดพลาด', 'ไฟล์ไม่ถูกต้องหรืออ่านไม่ได้', 'error'); }
+    };
+    reader.readAsText(file);
+    event.target.value = null;
+}
+
+// ============================================================
+// CORE LOGIC — PLAYERS
+// ============================================================
+function addPlayer() {
+    const prefix = document.getElementById('newPlayerPrefix').value;
+    const nameInput = document.getElementById('newPlayerName');
+    const raw = nameInput.value.trim();
+    if (!raw) return;
+    const name = prefix === 'ทั่วไป' ? raw : `${prefix}: ${raw}`;
+
+    if (state.masterPlayerList.includes(name)) {
+        Swal.fire({ icon: 'info', title: 'มีชื่อนี้แล้ว', text: 'กรุณาคลิกที่ชื่อเพื่อเลือกว่ามาวันนี้', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+        return;
+    }
+
+    state.masterPlayerList.push(name);
+    state.masterPlayerList.sort((a, b) => a.localeCompare(b, 'th'));
+
+    const dd = getCurrentDailyData();
+    let player = dd.players.find(p => p.name === name);
+    if (player) { player.present = true; }
+    else { dd.players.push({ name, paid: false, present: true }); }
+
+    nameInput.value = '';
+    document.getElementById('newPlayerPrefix').value = 'ทั่วไป';
+    updateAndRender();
+    Swal.fire({ icon: 'success', title: `เพิ่ม "${escapeHtml(name)}" สำเร็จ!`, toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+}
+
+function togglePlayerPresence(name) {
+    const dd = getCurrentDailyData();
+    let player = dd.players.find(p => p.name === name);
+    if (!player) {
+        if (!state.masterPlayerList.includes(name)) return;
+        player = { name, paid: false, present: true };
+        dd.players.push(player);
+    } else {
+        player.present = !player.present;
+    }
+    if (!player.present) {
+        Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
+    }
+    updateAndRender();
+}
+
+function openRenameModal(name) {
+    document.getElementById('rename-old-name').value = name;
+    document.getElementById('rename-old-display').textContent = name;
+    document.getElementById('rename-new-name').value = name;
+    document.getElementById('rename-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('rename-new-name').focus(), 100);
+}
+
+function closeRenameModal() { document.getElementById('rename-modal').classList.add('hidden'); }
+
+function submitRename() {
+    const oldName = document.getElementById('rename-old-name').value;
+    const newName = document.getElementById('rename-new-name').value.trim();
+    if (!newName) { Swal.fire('ข้อผิดพลาด', 'ชื่อใหม่ต้องไม่ว่าง', 'error'); return; }
+    if (oldName === newName) { closeRenameModal(); return; }
+    if (state.masterPlayerList.some(m => m.toLowerCase() === newName.toLowerCase() && m !== oldName)) {
+        Swal.fire('ข้อผิดพลาด', `มีชื่อ "${escapeHtml(newName)}" อยู่แล้ว`, 'error'); return;
+    }
+    const idx = state.masterPlayerList.indexOf(oldName);
+    if (idx !== -1) { state.masterPlayerList[idx] = newName; state.masterPlayerList.sort((a, b) => a.localeCompare(b, 'th')); }
+    state.allTransactions.forEach(t => { if (t.name === oldName) t.name = newName; });
+    state.allPayments.forEach(p => { if (p.name === oldName) p.name = newName; });
+    Object.values(state.dailyData).forEach(daily => {
+        daily.players.forEach(p => { if (p.name === oldName) p.name = newName; });
+        daily.games.forEach(g => { g.players = g.players.map(p => p === oldName ? newName : p); });
+    });
+    Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === oldName) currentGameSelection[k] = newName; });
+    closeRenameModal();
+    updateAndRender();
+    Swal.fire({ icon: 'success', title: 'เปลี่ยนชื่อสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+}
+
+function deletePlayer(name) {
+    Swal.fire({
+        title: `ต้องการลบ "${escapeHtml(name)}"?`,
+        html: `ผู้เล่นนี้จะถูก<strong>ลบออกจากทุกข้อมูล</strong>อย่างถาวร<br>รวมถึงประวัติการเล่นและการจ่ายเงินทั้งหมด`,
+        icon: 'warning', showCancelButton: true,
+        confirmButtonColor: '#dc2626', confirmButtonText: 'ใช่ ลบเลย!', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        state.masterPlayerList = state.masterPlayerList.filter(p => p !== name);
+        Object.values(state.dailyData).forEach(daily => {
+            daily.players = daily.players.filter(p => p.name !== name);
+        });
+        state.allTransactions = state.allTransactions.filter(t => t.name !== name);
+        state.allPayments = state.allPayments.filter(p => p.name !== name);
+        Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
+        updateAndRender();
+        Swal.fire({ icon: 'success', title: 'ลบผู้เล่นสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+    });
+}
+
+function clearTodayPlayers() {
+    Swal.fire({
+        title: 'ล้างรายชื่อวันนี้?', text: 'รายชื่อที่มาวันนี้และเกมที่บันทึกไว้จะถูกล้าง (รายชื่อหลักยังคงอยู่)',
+        icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626',
+        confirmButtonText: 'ล้างเลย!', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        const dd = getCurrentDailyData();
+        dd.players.forEach(p => { p.present = false; p.paid = false; });
+        dd.games = [];
+        currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+        updateAndRender();
+    });
+}
+
+function clearAllPlayers() {
+    Swal.fire({
+        title: 'ล้างข้อมูลทั้งหมด?',
+        html: `<p class="text-red-600 font-semibold">การดำเนินการนี้จะลบรายชื่อผู้เล่นและข้อมูลทั้งหมดอย่างถาวร!</p><p class="mt-2">พิมพ์ <strong>CONFIRM</strong> เพื่อยืนยัน</p>`,
+        icon: 'error', input: 'text', inputPlaceholder: 'CONFIRM',
+        inputValidator: v => v !== 'CONFIRM' ? 'กรุณาพิมพ์ CONFIRM ให้ถูกต้อง' : undefined,
+        showCancelButton: true, confirmButtonColor: '#dc2626',
+        confirmButtonText: 'ยืนยันลบทั้งหมด', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (r.isConfirmed) {
+            state = createDefaultState();
+            currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+            applySettingsToUI();
+            updateAndRender();
+        }
+    });
+}
+
+// ============================================================
+// CORE LOGIC — GAMES
+// ============================================================
+function recordGame() {
+    const players = ['player1','player2','player3','player4'].map(id => document.getElementById(id).value).filter(Boolean);
+    if (new Set(players).size !== 4) {
+        Swal.fire({ icon: 'error', title: 'ผู้เล่นไม่ถูกต้อง', text: 'กรุณาเลือกผู้เล่น 4 คนที่ไม่ซ้ำกัน' }); return;
+    }
+    const priceVal = parseFloat(document.getElementById('shuttlecockPrice').value);
+    if (isNaN(priceVal) || priceVal < 0) {
+        Swal.fire({ icon: 'error', title: 'ราคาไม่ถูกต้อง', text: 'กรุณากรอกราคาต่อลูก (≥ 0)' }); return;
+    }
+    const speedsStr = document.getElementById('shuttlecockSpeeds').value.trim();
+    if (!speedsStr) {
+        Swal.fire({ icon: 'error', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกเบอร์ลูกที่ใช้' }); return;
+    }
+    const speeds = speedsStr.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+    if (speeds.length === 0) {
+        Swal.fire({ icon: 'error', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกเบอร์ลูกให้ถูกต้อง' }); return;
+    }
+
+    _isDailyDirty = true; // ดักจับเมื่อมีข้อมูลที่ยังไม่ได้บันทึก
+
+    getCurrentDailyData().games.push({
+        id: generateGameId(), players, shuttlecocksUsed: speeds.length,
+        shuttlecockPrice: priceVal, shuttlecockSpeeds: speeds
+    });
+    state.settings.shuttlecockPrice = priceVal;
+
+    document.getElementById('shuttlecockSpeeds').value = '';
+    currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+    updateAndRender();
+    Swal.fire({ icon: 'success', title: 'บันทึกเกมสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+}
+
+function removeGame(gameId) {
+    Swal.fire({ title: 'ลบเกมนี้?', text: 'ค่าใช้จ่ายจะถูกคำนวณใหม่', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'ลบเลย!', cancelButtonText: 'ยกเลิก' })
+        .then(r => {
+            if (!r.isConfirmed) return;
+            _isDailyDirty = true;
+            const dd = getCurrentDailyData();
+            dd.games = dd.games.filter(g => g.id !== gameId);
+            updateAndRender();
+        });
+}
+
+async function editGame(gameId) {
+    const dd = getCurrentDailyData();
+    const game = dd.games.find(g => g.id === gameId);
+    if (!game) return;
+    const presentPlayers = dd.players.filter(p => p.present).sort((a, b) => a.name.localeCompare(b, 'th'));
+    const opts = presentPlayers.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+    const speedVal = (game.shuttlecockSpeeds || []).join(', ');
+    const makeSelect = (i) => `<div class="mb-2 text-left"><label style="font-size:13px;font-weight:600;color:#475569">ผู้เล่น ${i}</label><select id="ep${i}" class="swal2-select" style="margin:4px 0 0;">${opts}</select></div>`;
+    const { value: fv, isConfirmed } = await Swal.fire({
+        title: 'แก้ไขข้อมูลเกม', width: 480,
+        html: `${[1,2,3,4].map(makeSelect).join('')}<div class="mt-2 text-left"><label style="font-size:13px;font-weight:600;color:#475569">เบอร์ลูก</label><input id="ep-speeds" class="swal2-input" value="${escapeHtml(speedVal)}" style="margin:4px 0 0;" placeholder="75, 76"></div>`,
+        focusConfirm: false,
+        didOpen: () => { for (let i = 1; i <= 4; i++) { const s = document.getElementById(`ep${i}`); if (s) s.value = game.players[i-1] || ''; } },
+        preConfirm: () => {
+            const players = [1,2,3,4].map(i => document.getElementById(`ep${i}`).value).filter(Boolean);
+            const speeds = document.getElementById('ep-speeds').value.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+            if (new Set(players).size !== 4) { Swal.showValidationMessage('กรุณาเลือกผู้เล่น 4 คนที่ไม่ซ้ำ'); return false; }
+            if (speeds.length === 0) { Swal.showValidationMessage('กรุณากรอกเบอร์ลูก'); return false; }
+            return { players, speeds };
+        }
+    });
+    if (isConfirmed && fv) {
+        _isDailyDirty = true;
+        game.players = fv.players; game.shuttlecockSpeeds = fv.speeds; game.shuttlecocksUsed = fv.speeds.length;
+        updateAndRender();
+        Swal.fire({ icon: 'success', title: 'แก้ไขเกมสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+    }
+}
+
+function moveGame(gameId, dir) {
+    const dd = getCurrentDailyData();
+    const idx = dd.games.findIndex(g => g.id === gameId);
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= dd.games.length) return;
+    [dd.games[idx], dd.games[targetIdx]] = [dd.games[targetIdx], dd.games[idx]];
+    updateAndRender();
+}
+
+function togglePaidStatus(name) {
+    const dd = getCurrentDailyData();
+    const player = dd.players.find(p => p.name === name);
+    if (!player) return;
+    const summary = calculateDailySummary();
+    const pd = summary.playerDetails[name];
+    if (!pd || pd.totalCost < TOLERANCE) {
+        Swal.fire({ icon: 'warning', title: 'ไม่มีค่าใช้จ่าย', text: `${escapeHtml(name)} ไม่มียอดที่ต้องชำระ` }); return;
+    }
+    player.paid = !player.paid;
+    updateAndRender();
+}
+
+// ============================================================
+// CALCULATIONS
+// ============================================================
+function calculateDailySummary() {
+    const dd = getCurrentDailyData();
+    const details = {};
+
+    dd.players.filter(p => p.present).forEach(p => {
+        details[p.name] = { name: p.name, shuttlecockCost: 0, totalCost: 0, gamesPlayed: 0, paid: p.paid, gameIndices: [], shuttlecockSpeedsUsed: [], inGameOnly: false };
+    });
+
+    dd.games.forEach(g => {
+        g.players.forEach(name => {
+            if (!details[name]) {
+                const playerRecord = dd.players.find(p => p.name === name);
+                details[name] = {
+                    name, shuttlecockCost: 0, totalCost: 0, gamesPlayed: 0,
+                    paid: playerRecord ? playerRecord.paid : false,
+                    gameIndices: [], shuttlecockSpeedsUsed: [],
+                    inGameOnly: true 
+                };
+            }
+        });
+    });
+
+    dd.games.forEach((g, idx) => {
+        const price = g.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
+        const costPer = (g.shuttlecocksUsed * price) / 4;
+        g.players.forEach(name => {
+            if (details[name]) {
+                details[name].shuttlecockCost += costPer;
+                details[name].totalCost += costPer;
+                details[name].gamesPlayed++;
+                details[name].gameIndices.push(idx + 1);
+                details[name].shuttlecockSpeedsUsed.push(...(g.shuttlecockSpeeds || []));
+            }
+        });
+    });
+
+    let grandTotal = 0;
+    Object.values(details).forEach(d => { grandTotal += d.totalCost; });
+    return { playerDetails: details, grandTotal };
+}
+
+function calculateOverallBalance() {
+    const allNames = new Set([
+        ...state.masterPlayerList,
+        ...state.allTransactions.map(t => t.name),
+        ...state.allPayments.map(p => p.name)
+    ]);
+    const summary = {};
+    allNames.forEach(name => { summary[name] = { name, totalDebt: 0, totalPaid: 0, balance: 0 }; });
+    let totalShuttlecock = 0;
+    state.allTransactions.forEach(t => {
+        if (summary[t.name]) { summary[t.name].totalDebt += Number(t.totalCost || 0); totalShuttlecock += Number(t.shuttlecockCost || 0); }
+    });
+    state.allPayments.forEach(p => { if (summary[p.name]) summary[p.name].totalPaid += Number(p.amount || 0); });
+    const report = { unpaid: [], withCredit: [], paidInFull: [] };
+    let totalUnpaid = 0, totalCredit = 0;
+    Object.values(summary).forEach(item => {
+        item.balance = item.totalDebt - item.totalPaid;
+        if (item.totalDebt > TOLERANCE || item.totalPaid > TOLERANCE) {
+            if (item.balance > TOLERANCE) { report.unpaid.push(item); totalUnpaid += item.balance; }
+            else if (item.balance < -TOLERANCE) { report.withCredit.push(item); totalCredit += -item.balance; }
+            else report.paidInFull.push(item);
+        }
+    });
+    report.unpaid.sort((a, b) => b.balance - a.balance);
+    report.withCredit.sort((a, b) => a.balance - b.balance);
+    report.paidInFull.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    return { report, totalShuttlecock, totalUnpaid, totalCredit, playersCount: allNames.size };
+}
+
+// ============================================================
+// CONFIRM & SAVE DAILY TO OVERALL
+// ============================================================
+function confirmDailySummaryAndSave() {
+    const { playerDetails } = calculateDailySummary();
+    const withCosts = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0);
+    if (withCosts.length === 0) { Swal.fire('ไม่พบข้อมูล', 'ยังไม่มีผู้เล่นที่มีค่าใช้จ่าย', 'info'); return; }
+
+    Swal.fire({
+        title: 'ยืนยันและบันทึกลงบัญชีรวม?',
+        html: `<p>ข้อมูลวันที่ <strong>${selectedDate}</strong> จะถูกบันทึกลงประวัติรวม</p><p class="text-sm text-gray-500 mt-1">(ถ้าเคยบันทึกวันนี้แล้วจะถูกอัปเดตโดยอัตโนมัติ)</p>`,
+        icon: 'question', showCancelButton: true, confirmButtonColor: '#1d4ed8',
+        confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        
+        state.allTransactions = state.allTransactions.filter(t => {
+            if (t.date !== selectedDate) return true;
+            if (t.source === 'quick_debt') return true;
+            if (!t.source && t.shuttlecockCost === 0) return true; 
+            if (!t.source) return false; 
+            return false;
+        });
+
+        state.allPayments = state.allPayments.filter(p => {
+            if (p.paymentDate !== selectedDate) return true;
+            if (p.source === 'manual_payment') return true;
+            if (p.source === 'daily') return false;
+            return true; 
+        });
+
+        const transToAdd = withCosts.map(p => ({
+            date: selectedDate, name: p.name,
+            shuttlecockCost: parseFloat(p.shuttlecockCost.toFixed(2)),
+            totalCost: parseFloat(p.totalCost.toFixed(2)),
+            status: p.paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
+            source: 'daily'
+        }));
+        
+        const paymentsToAdd = withCosts
+            .filter(p => p.paid && p.totalCost > TOLERANCE)
+            .map(p => ({ 
+                timestamp: new Date().toISOString(), 
+                paymentDate: selectedDate, 
+                name: p.name, 
+                amount: parseFloat(p.totalCost.toFixed(2)),
+                source: 'daily'
+            }));
+
+        state.allTransactions.push(...transToAdd);
+        state.allPayments.push(...paymentsToAdd);
+        
+        _isDailyDirty = false; // รีเซ็ตสถานะแจ้งเตือนปิดหน้าเว็บ
+        updateAndRender();
+
+        // Auto-Snapshot Backup ป้องกันข้อมูลหาย
+        try {
+            localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(state));
+        } catch(e) { console.error('Auto Backup failed'); }
+
+        Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ!', text: `บันทึกข้อมูลวันที่ ${selectedDate} ลงบัญชีรวมแล้ว`, timer: 2500, showConfirmButton: false });
+    });
+}
+
+function clearTodayData() {
+    Swal.fire({ title: 'ล้างข้อมูลวันนี้?', text: 'เกมและการจ่ายเงินของวันนี้จะถูกล้างทั้งหมด', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'ล้างเลย!', cancelButtonText: 'ยกเลิก' })
+        .then(r => {
+            if (!r.isConfirmed) return;
+            const dd = getCurrentDailyData();
+            dd.games = [];
+            dd.players.forEach(p => { p.paid = false; });
+            currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+            _isDailyDirty = false;
+            updateAndRender();
+        });
+}
+
+// ============================================================
+// PAYMENT MODAL
+// ============================================================
+function openPaymentModal(name, balance) {
+    document.getElementById('payment-name').textContent = name;
+    document.getElementById('payment-hidden-name').value = name;
+    document.getElementById('payment-amount').value = parseFloat(balance).toFixed(2);
+    document.getElementById('payment-modal').classList.remove('hidden');
+    setTimeout(() => document.getElementById('payment-amount').focus(), 100);
+}
+function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); document.getElementById('payment-amount').value = ''; }
+function submitPayment() {
+    const name = document.getElementById('payment-hidden-name').value;
+    const amount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    if (amount <= 0) { Swal.fire('ข้อผิดพลาด', 'จำนวนเงินต้องมากกว่า 0', 'error'); return; }
+    state.allPayments.push({ timestamp: new Date().toISOString(), paymentDate: getTodayString(), name, amount, source: 'manual_payment' });
+    closePaymentModal();
+    updateAndRender();
+    Swal.fire({ icon: 'success', title: 'บันทึกการชำระเงินสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+}
+
+// ============================================================
+// QUICK DEBT MODAL
+// ============================================================
+function openQuickDebtModal() {
+    fillMasterPlayerDropdown('debt-player-name');
+    document.getElementById('debt-date').value = getTodayString();
+    document.getElementById('debt-amount').value = '';
+    document.getElementById('quick-debt-modal').classList.remove('hidden');
+}
+function closeQuickDebtModal() { document.getElementById('quick-debt-modal').classList.add('hidden'); }
+function submitDebt() {
+    const date = document.getElementById('debt-date').value;
+    const name = document.getElementById('debt-player-name').value;
+    const amount = parseFloat(document.getElementById('debt-amount').value) || 0;
+    if (!name) { Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกชื่อผู้เล่น', 'error'); return; }
+    if (!date) { Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกวันที่', 'error'); return; }
+    if (amount <= 0) { Swal.fire('ข้อผิดพลาด', 'ยอดหนี้ต้องมากกว่า 0', 'error'); return; }
+    state.allTransactions.push({ date, name, shuttlecockCost: 0, totalCost: parseFloat(amount.toFixed(2)), status: 'ยังไม่จ่าย', source: 'quick_debt' });
+    closeQuickDebtModal();
+    updateAndRender();
+    Swal.fire({ icon: 'success', title: 'บันทึกหนี้สำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+}
+
+function fillMasterPlayerDropdown(selectId) {
+    const sel = document.getElementById(selectId);
+    sel.innerHTML = '<option value="">-- เลือกผู้เล่น --</option>' +
+        [...state.masterPlayerList].sort((a, b) => a.localeCompare(b, 'th')).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+}
+
+// ============================================================
+// RENDER — DAILY
+// ============================================================
+function renderAll() {
+    renderPlayerList();
+    renderGameDropdowns();
+    renderOverallSummaryStats();
+    renderGamesList();
+    renderDailySummaryTable();
+}
+
+function renderPlayerList() {
+    const allNames = [...new Set([...state.masterPlayerList, ...getCurrentDailyData().players.map(p => p.name)])].sort((a, b) => a.localeCompare(b, 'th'));
+    const container = document.getElementById('playerList');
+    if (allNames.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-4 text-sm">ยังไม่มีรายชื่อผู้เล่น กรุณาเพิ่มผู้เล่น</div>';
+        return;
+    }
+    container.innerHTML = allNames.map(name => {
+        const dd = getCurrentDailyData();
+        const player = dd.players.find(p => p.name === name);
+        const isPresent = player ? player.present : false;
+        const color = getPlayerColor(name);
+        const stylePresent = `background:${color.bg};border-color:${color.border};color:${color.text};`;
+        const styleAbsent = 'background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;';
+
+        const colonIdx = name.indexOf(': ');
+        const hasPrefix = colonIdx !== -1;
+        const prefix = hasPrefix ? name.substring(0, colonIdx) : '';
+        const shortName = hasPrefix ? name.substring(colonIdx + 2) : name;
+        const dataName = `data-name="${escapeHtml(name)}"`;
+
+        const nameBlock = hasPrefix
+            ? `<div style="display:flex;flex-direction:column;min-width:0;flex:1;">
+                <span style="font-size:10px;font-weight:500;opacity:0.7;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(prefix)}</span>
+                <span style="font-size:13px;font-weight:700;line-height:1.3;white-space:normal;word-break:break-word;">${escapeHtml(shortName)}</span>
+               </div>`
+            : `<span style="font-size:13px;font-weight:700;white-space:normal;word-break:break-word;flex:1;">${escapeHtml(shortName)}</span>`;
+
+        return `<div class="player-chip ${isPresent ? '' : 'absent'}" style="${isPresent ? stylePresent : styleAbsent};align-items:flex-start;" ${dataName} data-action="toggle">
+            <div style="display:flex;align-items:flex-start;gap:6px;overflow:hidden;flex:1;min-width:0;">
+                <i class="fas ${isPresent ? 'fa-user-check' : 'fa-user'}" style="font-size:12px;flex-shrink:0;margin-top:3px;"></i>
+                ${nameBlock}
+            </div>
+            <div class="chip-actions" style="flex-shrink:0;margin-left:4px;">
+                <button ${dataName} data-action="rename" title="เปลี่ยนชื่อ" class="btn btn-ghost btn-icon" style="font-size:11px;padding:4px;"><i class="fas fa-edit"></i></button>
+                <button ${dataName} data-action="delete" title="ลบ" class="btn btn-ghost btn-icon" style="font-size:11px;padding:4px;color:#ef4444;"><i class="fas fa-trash-alt"></i></button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderGameDropdowns() {
+    const dd = getCurrentDailyData();
+    const present = dd.players.filter(p => p.present).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    const baseOpts = '<option value="">-- เลือกผู้เล่น --</option>' + present.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+    const selected = Object.values(currentGameSelection).filter(Boolean);
+
+    Object.keys(currentGameSelection).forEach(k => {
+        if (currentGameSelection[k] && !present.some(p => p.name === currentGameSelection[k])) currentGameSelection[k] = '';
+    });
+
+    ['player1','player2','player3','player4'].forEach(id => {
+        const sel = document.getElementById(id);
+        sel.innerHTML = baseOpts;
+        sel.value = currentGameSelection[id] || '';
+        for (const opt of sel.options) {
+            if (opt.value) opt.disabled = selected.includes(opt.value) && opt.value !== sel.value;
+        }
+    });
+}
+
+function renderOverallSummaryStats() {
+    const dd = getCurrentDailyData();
+    const games = dd.games;
+    document.getElementById('totalGames').textContent = games.length;
+    const totalBalls = games.reduce((s, g) => s + (g.shuttlecocksUsed || 0), 0);
+    document.getElementById('totalShuttlecocks').textContent = totalBalls;
+    const counts = games.reduce((acc, g) => {
+        (g.shuttlecockSpeeds || []).forEach(sp => { const s = String(sp).trim(); if (s) acc[s] = (acc[s] || 0) + 1; });
+        return acc;
+    }, {});
+    const summDiv = document.getElementById('shuttlecockSpeedSummary');
+    summDiv.innerHTML = Object.keys(counts).length
+        ? Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0])).map(([s, c]) => `<span>เบอร์ ${escapeHtml(s)}: <strong>${c}</strong> ลูก</span>`).join(' <span style="color:#cbd5e1">|</span> ')
+        : '<span style="color:#94a3b8">ยังไม่มีข้อมูล</span>';
+}
+
+function renderGamesList() {
+    const games = getCurrentDailyData().games;
+    const container = document.getElementById('gamesList');
+    if (!games.length) {
+        container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-table-tennis"></i>ยังไม่มีการบันทึกเกม</div>';
+        return;
+    }
+    container.innerHTML = games.map((game, idx) => {
+        const [p1, p2, p3, p4] = game.players;
+        const tag = (n) => n ? `<span class="player-tag" style="background:${getPlayerColor(n).tag}">${escapeHtml(n)}</span>` : '';
+        const speedText = (game.shuttlecockSpeeds || []).join(', ') || 'N/A';
+        const price = game.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
+        const cost = ((game.shuttlecocksUsed || 0) * price / 4).toFixed(2);
+        return `<div class="game-card">
+            <div class="game-card-header">
+                <span style="font-size:13px;font-weight:700;color:#475569">เกมที่ ${idx + 1}</span>
+                <div style="display:flex;gap:3px;align-items:center;">
+                    <button data-game-id="${game.id}" data-action="move-up" class="btn btn-ghost btn-icon" ${idx===0?'disabled':''} title="เลื่อนขึ้น"><i class="fas fa-arrow-up" style="font-size:11px;"></i></button>
+                    <button data-game-id="${game.id}" data-action="move-down" class="btn btn-ghost btn-icon" ${idx===games.length-1?'disabled':''} title="เลื่อนลง"><i class="fas fa-arrow-down" style="font-size:11px;"></i></button>
+                    <button data-game-id="${game.id}" data-action="edit-game" class="btn btn-ghost btn-icon" title="แก้ไข" style="color:#3b82f6;"><i class="fas fa-edit" style="font-size:11px;"></i></button>
+                    <button data-game-id="${game.id}" data-action="remove-game" class="btn btn-ghost btn-icon" title="ลบ" style="color:#ef4444;"><i class="fas fa-trash-alt" style="font-size:11px;"></i></button>
+                </div>
+            </div>
+            <div class="game-card-body" style="font-size:13px;">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+                    <span style="width:52px;font-weight:700;color:#3b82f6;font-size:12px;flex-shrink:0;">ทีม A</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">${tag(p1)}${tag(p2)}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                    <span style="width:52px;font-weight:700;color:#ef4444;font-size:12px;flex-shrink:0;">ทีม B</span>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">${tag(p3)}${tag(p4)}</div>
+                </div>
+                <div style="background:#f8fafc;border-radius:6px;padding:6px 10px;font-size:12px;color:#475569;">
+                    <i class="fas fa-circle" style="font-size:8px;margin-right:4px;"></i>
+                    ${escapeHtml(speedText)} &nbsp;·&nbsp; ${game.shuttlecocksUsed} ลูก @${price.toFixed(2)} บ. &nbsp;·&nbsp; คนละ <strong>${cost}</strong> บ.
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderDailySummaryTable() {
+    const { playerDetails, grandTotal } = calculateDailySummary();
+    const all = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    const unpaid = all.filter(p => !p.paid);
+    const paid = all.filter(p => p.paid);
+
+    const makeRow = (d) => `<tr${d.inGameOnly ? ' style="background:#fffbeb;"' : ''}>
+        <td class="sticky-col" style="background:${d.inGameOnly ? '#fffbeb' : 'white'};font-weight:600;">
+            ${escapeHtml(d.name)}
+            ${d.inGameOnly ? '<span title="อยู่ในเกมแต่ไม่ได้ mark มาวันนี้" style="margin-left:4px;font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-weight:600;">*เกม</span>' : ''}
+        </td>
+        <td class="text-center" style="font-size:12px;">${d.gameIndices.join(', ') || '-'}</td>
+        <td class="text-center" style="font-size:11px;color:#64748b;">${[...new Set(d.shuttlecockSpeedsUsed)].join(', ') || '-'}</td>
+        <td class="text-center" style="font-weight:700;">${d.totalCost.toFixed(2)}</td>
+        <td class="text-center"><span class="badge ${d.paid ? 'badge-success' : 'badge-danger'}">${d.paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}</span></td>
+        <td class="text-center"><button data-name="${escapeHtml(d.name)}" data-action="toggle-paid" class="btn btn-sm ${d.paid ? 'btn-secondary' : 'btn-warning'}" style="font-size:12px;">${d.paid ? 'ยกเลิก' : 'บันทึกจ่าย'}</button></td>
+    </tr>`;
+
+    let unpaidHtml = '', paidHtml = '';
+    if (unpaid.length) {
+        const tot = unpaid.reduce((s, p) => s + p.totalCost, 0);
+        unpaidHtml = `<tr><td colspan="6" class="section-divider" style="background:#fef2f2;color:#b91c1c;border-bottom:1px solid #fecaca;">ยังไม่จ่าย (${unpaid.length} คน)</td></tr>`;
+        unpaidHtml += unpaid.map(makeRow).join('');
+        unpaidHtml += `<tr style="background:#fef2f2;font-weight:700;"><td class="sticky-col" colspan="3" style="background:#fef2f2;">รวม (ยังไม่จ่าย)</td><td class="text-center" style="color:#b91c1c;">${tot.toFixed(2)}</td><td colspan="2"></td></tr>`;
+    }
+    if (paid.length) {
+        const tot = paid.reduce((s, p) => s + p.totalCost, 0);
+        paidHtml = `<tr><td colspan="6" class="section-divider" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0;">จ่ายแล้ว (${paid.length} คน)</td></tr>`;
+        paidHtml += paid.map(makeRow).join('');
+        paidHtml += `<tr style="background:#f0fdf4;font-weight:700;"><td class="sticky-col" colspan="3" style="background:#f0fdf4;">รวม (จ่ายแล้ว)</td><td class="text-center" style="color:#15803d;">${tot.toFixed(2)}</td><td colspan="2"></td></tr>`;
+    }
+
+    document.getElementById('summaryTableUnpaid').innerHTML = unpaidHtml || (all.length === 0 ? `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i>ยังไม่มีข้อมูล</div></td></tr>` : '');
+    document.getElementById('summaryTablePaid').innerHTML = paidHtml;
+    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+}
+
+// ============================================================
+// RENDER — ACCOUNT
+// ============================================================
+function renderAccountTab() {
+    const { report, totalShuttlecock, totalUnpaid, totalCredit, playersCount } = calculateOverallBalance();
+    document.getElementById('account-summary-date').textContent = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('total-unpaid-overall').textContent = formatCurrency(totalUnpaid);
+    document.getElementById('total-credit-overall').textContent = formatCurrency(totalCredit);
+    document.getElementById('total-shuttlecock-overall').textContent = formatCurrency(totalShuttlecock);
+    document.getElementById('players-count-overall').textContent = playersCount;
+    fillMasterPlayerDropdown('debt-player-name');
+
+    const makeCard = (item) => {
+        const balance = parseFloat(item.balance);
+        let balHtml, action = '';
+        if (balance > TOLERANCE) {
+            balHtml = `<span style="font-weight:700;color:#dc2626;">ค้าง ${formatCurrency(balance)}</span>`;
+            action = `<button class="btn btn-success btn-sm pay-btn" data-name="${escapeHtml(item.name)}" data-balance="${balance.toFixed(2)}" style="font-size:12px;"><i class="fas fa-hand-holding-usd"></i>รับเงิน</button>`;
+        } else if (balance < -TOLERANCE) {
+            balHtml = `<span style="font-weight:700;color:#1d4ed8;">เครดิต ${formatCurrency(-balance)}</span>`;
+        } else {
+            balHtml = `<span style="font-weight:700;color:#16a34a;">✅ ครบแล้ว</span>`;
+        }
+        return `<div style="border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;background:white;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span style="font-weight:700;color:#1e293b;">${escapeHtml(item.name)}</span>
+                <div style="display:flex;align-items:center;gap:8px;">${balHtml}${action}</div>
+            </div>
+            <div style="font-size:12px;color:#64748b;margin-top:5px;display:flex;justify-content:space-between;">
+                <span>เรียกเก็บรวม: ${formatCurrency(item.totalDebt)}</span>
+                <span>ชำระแล้ว: ${formatCurrency(item.totalPaid)}</span>
+            </div>
+        </div>`;
+    };
+
+    const searchTerm = document.getElementById('searchAccountInput') ? document.getElementById('searchAccountInput').value.toLowerCase() : '';
+    const filterFn = item => item.name.toLowerCase().includes(searchTerm);
+    const displayUnpaid = report.unpaid.filter(filterFn);
+    const displayCredit = report.withCredit.filter(filterFn);
+    const displayPaidFull = report.paidInFull.filter(filterFn);
+
+    const empty = (txt) => `<div class="text-sm text-gray-400 py-2 px-1">${txt}</div>`;
+    document.getElementById('unpaid-list-overall').innerHTML = displayUnpaid.length ? displayUnpaid.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+    document.getElementById('credit-list-overall').innerHTML = displayCredit.length ? displayCredit.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+    document.getElementById('paid-in-full-list-overall').innerHTML = displayPaidFull.length ? displayPaidFull.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+}
+
+// ============================================================
+// RENDER — HISTORY
+// ============================================================
+function renderHistoryTab() {
+    const startDate = document.getElementById('summaryStartDate').value;
+    const endDate = document.getElementById('summaryEndDate').value;
+    document.getElementById('history-current-date').textContent = new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.';
+
+    const filteredTx = state.allTransactions.filter(t => (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate));
+    const filteredPay = state.allPayments.filter(p => (!startDate || p.paymentDate >= startDate) && (!endDate || p.paymentDate <= endDate));
+
+    const summaries = {};
+    const names = new Set([...filteredTx.map(t => t.name), ...filteredPay.map(p => p.name)]);
+    names.forEach(name => { summaries[name] = { name, totalDebt: 0, totalPaid: 0, balance: 0, transactions: [], payments: [] }; });
+    filteredTx.forEach(t => { if (summaries[t.name]) { summaries[t.name].totalDebt += Number(t.totalCost || 0); summaries[t.name].transactions.push(t); } });
+    filteredPay.forEach(p => { if (summaries[p.name]) { summaries[p.name].totalPaid += Number(p.amount || 0); summaries[p.name].payments.push(p); } });
+    const all = Object.values(summaries).map(p => { p.balance = p.totalDebt - p.totalPaid; return p; }).filter(p => p.totalDebt > TOLERANCE || p.totalPaid > TOLERANCE);
+    const unpaid = all.filter(p => p.balance > TOLERANCE).sort((a, b) => b.balance - a.balance);
+    const paid = all.filter(p => p.balance <= TOLERANCE).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    const contentDiv = document.getElementById('overall-summary-content');
+    if (!all.length) { contentDiv.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-times"></i>ไม่พบข้อมูลสำหรับช่วงวันที่ที่เลือก</div>'; return; }
+
+    // คำนวณสถิติ
+    let topSpender = { name: '-', amount: 0 };
+    let topPaid = { name: '-', amount: 0 };
+    all.forEach(p => {
+        if (p.totalDebt > topSpender.amount) { topSpender.amount = p.totalDebt; topSpender.name = p.name; }
+        if (p.totalPaid > topPaid.amount) { topPaid.amount = p.totalPaid; topPaid.name = p.name; }
+    });
+
+    const statsHtml = `
+        <div class="grid grid-cols-2 gap-3 mb-5 p-3 bg-indigo-50 rounded-lg border border-indigo-100">
+            <div>
+                <div class="text-xs text-indigo-600 font-semibold">🏸 ค่าลูกแบดรวมสูงสุด</div>
+                <div class="text-sm font-bold text-gray-800">${escapeHtml(topSpender.name)} <span class="text-indigo-600">(฿${topSpender.amount.toFixed(2)})</span></div>
+            </div>
+            <div>
+                <div class="text-xs text-green-600 font-semibold">💸 ชำระเงินรวมสูงสุด</div>
+                <div class="text-sm font-bold text-gray-800">${escapeHtml(topPaid.name)} <span class="text-green-600">(฿${topPaid.amount.toFixed(2)})</span></div>
+            </div>
+        </div>
+    `;
+
+    const makeHistoryTable = (players, colorScheme, label) => {
+        const total = players.reduce((s, p) => s + p.balance, 0);
+        const colors = colorScheme === 'red'
+            ? { head: '#fef2f2', headText: '#b91c1c', foot: '#fecaca', border: '#fca5a5' }
+            : { head: '#f0fdf4', headText: '#15803d', foot: '#bbf7d0', border: '#86efac' };
+        return `<div style="margin-bottom:28px;">
+            <h3 style="font-size:16px;font-weight:700;color:${colors.headText};border-bottom:2px solid ${colors.border};padding-bottom:8px;margin-bottom:12px;">${label}</h3>
+            <div class="overflow-x-auto">
+                <table class="data-table">
+                    <thead style="background:${colors.head};">
+                        <tr>
+                            <th style="color:${colors.headText};">ชื่อผู้เล่น</th>
+                            <th class="text-right" style="color:${colors.headText};">ยอดเรียกเก็บ</th>
+                            <th class="text-right" style="color:${colors.headText};">ชำระแล้ว</th>
+                            <th class="text-right" style="color:${colors.headText};font-weight:700;">ยอดคงเหลือ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${players.map((p, i) => renderHistoryRow(p, colorScheme, i)).join('')}
+                    </tbody>
+                    <tfoot style="background:${colors.foot};">
+                        <tr>
+                            <td colspan="3">รวมทั้งหมด</td>
+                            <td class="text-right" style="color:${colors.headText};font-size:15px;">${total.toFixed(2)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>`;
+    };
+
+    let html = statsHtml;
+    if (unpaid.length) html += makeHistoryTable(unpaid, 'red', `⚠️ ผู้เล่นที่มียอดค้างชำระ (${unpaid.length} คน)`);
+    if (paid.length) html += makeHistoryTable(paid, 'green', `✅ ผู้เล่นที่ชำระครบแล้ว / มีเครดิต (${paid.length} คน)`);
+    contentDiv.innerHTML = html;
+}
+
+function renderHistoryRow(player, color, suffix) {
+    const detailId = `hd-${color}-${suffix}`;
+    const balColor = player.balance > TOLERANCE ? '#b91c1c' : (player.balance < -TOLERANCE ? '#1d4ed8' : '#15803d');
+    const balText = player.balance < -TOLERANCE ? `(${Math.abs(player.balance).toFixed(2)})` : player.balance.toFixed(2);
+    const sortedTx = [...player.transactions].sort((a, b) => new Date(b.date+'T00:00:00') - new Date(a.date+'T00:00:00'));
+    const sortedPay = [...player.payments].sort((a, b) => new Date(b.paymentDate+'T00:00:00') - new Date(a.paymentDate+'T00:00:00'));
+    return `
+        <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" data-detail-id="${detailId}" data-action="toggle-history">
+            <td style="font-weight:600;">${escapeHtml(player.name)} <i class="fas fa-chevron-down" style="font-size:10px;color:#94a3b8;transition:transform .2s;"></i></td>
+            <td class="text-right">${player.totalDebt.toFixed(2)}</td>
+            <td class="text-right" style="color:#16a34a;">${player.totalPaid.toFixed(2)}</td>
+            <td class="text-right" style="font-weight:700;color:${balColor};">${balText}</td>
+        </tr>
+        <tr id="${detailId}" class="details-row">
+            <td colspan="4" style="padding:0;">
+                <div style="padding:14px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div>
+                            <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">ประวัติค่าใช้จ่าย</div>
+                            <div style="max-height:160px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;background:white;">
+                                <table class="data-table" style="font-size:12px;">
+                                    <tbody>
+                                        ${sortedTx.length ? sortedTx.map(t => `<tr><td>${new Date(t.date+'T00:00:00').toLocaleDateString('th-TH')}</td><td class="text-right">${Number(t.totalCost).toFixed(2)} บ.</td><td class="text-center"><span class="badge ${t.status==='จ่ายแล้ว'?'badge-success':'badge-danger'}" style="font-size:11px;">${t.status||'ยังไม่จ่าย'}</span></td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">ไม่มีรายการ</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:6px;">ประวัติการชำระเงิน</div>
+                            <div style="max-height:160px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;background:white;">
+                                <table class="data-table" style="font-size:12px;">
+                                    <tbody>
+                                        ${sortedPay.length ? sortedPay.map((p, pi) => {
+                                            const payIdx = state.allPayments.indexOf(p);
+                                            return `<tr>
+                                                <td>${new Date(p.paymentDate+'T00:00:00').toLocaleDateString('th-TH')}</td>
+                                                <td class="text-right" style="color:#16a34a;font-weight:600;">${Number(p.amount).toFixed(2)} บ.</td>
+                                                <td style="text-align:center;padding:4px;">
+                                                    <button class="btn btn-ghost btn-icon del-payment-btn"
+                                                        data-pay-idx="${payIdx}"
+                                                        data-player-name="${escapeHtml(player.name)}"
+                                                        data-amount="${Number(p.amount).toFixed(2)}"
+                                                        data-date="${p.paymentDate}"
+                                                        title="ลบรายการชำระนี้"
+                                                        style="color:#ef4444;padding:2px 6px;font-size:11px;">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>`;
+                                        }).join('') : '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">ไม่มีรายการ</td></tr>'}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </td>
+        </tr>`;
+}
+
+function toggleHistoryDetails(id, triggerRow) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.toggle('show');
+    const icon = triggerRow.querySelector('.fa-chevron-down');
+    if (icon) icon.style.transform = el.classList.contains('show') ? 'rotate(180deg)' : '';
+}
+
+// ============================================================
+// TAB MANAGEMENT
+// ============================================================
+function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.getElementById(`tab-${name}`).classList.remove('hidden');
+    document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+    if (name === 'account') renderAccountTab();
+    if (name === 'history') renderHistoryTab();
+}
+
+// ============================================================
+// MAIN UPDATE CYCLE
+// ============================================================
+function updateAndRender() {
+    saveToStorage();
+    renderAll();
+    updateTabBadges();
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
+    if (activeTab === 'account') renderAccountTab();
+    if (activeTab === 'history') renderHistoryTab();
+}
+
+function updateTabBadges() {
+    const { playerDetails } = calculateDailySummary();
+    const unpaidToday = Object.values(playerDetails).filter(p => !p.paid && p.totalCost > TOLERANCE).length;
+    const badgeDaily = document.getElementById('badge-daily');
+    if (badgeDaily) {
+        if (unpaidToday > 0) { badgeDaily.textContent = unpaidToday; badgeDaily.style.display = 'inline-flex'; }
+        else badgeDaily.style.display = 'none';
+    }
+    const { report } = calculateOverallBalance();
+    const badgeAcc = document.getElementById('badge-account');
+    if (badgeAcc) {
+        if (report.unpaid.length > 0) { badgeAcc.textContent = report.unpaid.length; badgeAcc.style.display = 'inline-flex'; }
+        else badgeAcc.style.display = 'none';
+    }
+}
+
+function useLastTeam() {
+    const games = getCurrentDailyData().games;
+    if (!games.length) {
+        Swal.fire({ icon: 'info', title: 'ยังไม่มีเกม', text: 'ยังไม่มีเกมที่บันทึกในวันนี้' }); return;
+    }
+    const lastGame = games[games.length - 1];
+    const presentNames = getCurrentDailyData().players.filter(p => p.present).map(p => p.name);
+    const missing = lastGame.players.filter(n => !presentNames.includes(n));
+    if (missing.length > 0) {
+        Swal.fire({
+            icon: 'warning', title: 'ผู้เล่นบางคนไม่ได้มาวันนี้',
+            html: `<p>ผู้เล่นต่อไปนี้ไม่ได้ mark ว่ามาวันนี้:</p>
+                   <p style="font-weight:700;color:#dc2626;">${missing.map(n => escapeHtml(n)).join(', ')}</p>
+                   <p style="margin-top:8px;">ต้องการใช้ทีมเดิมต่อไหม?</p>`,
+            showCancelButton: true, confirmButtonText: 'ใช้ทีมเดิม', cancelButtonText: 'ยกเลิก',
+            confirmButtonColor: '#1d4ed8'
+        }).then(r => { if (r.isConfirmed) applyLastTeam(lastGame.players); });
+    } else {
+        applyLastTeam(lastGame.players);
+    }
+}
+
+function applyLastTeam(players) {
+    ['player1','player2','player3','player4'].forEach((id, i) => {
+        currentGameSelection[id] = players[i] || '';
+    });
+    renderGameDropdowns();
+    Swal.fire({ icon: 'success', title: 'เลือกทีมเดิมแล้ว', toast: true, position: 'top-end', showConfirmButton: false, timer: 1800 });
+}
+
+function payAllUnpaid() {
+    const { report } = calculateOverallBalance();
+    if (!report.unpaid.length) {
+        Swal.fire({ icon: 'info', title: 'ไม่มีรายการค้าง', text: 'ทุกคนชำระครบแล้ว 🎉' }); return;
+    }
+    const totalAmt = report.unpaid.reduce((s, p) => s + p.balance, 0);
+    const nameList = report.unpaid.map(p => `${escapeHtml(p.name)} (฿${p.balance.toFixed(2)})`).join('<br>');
+    Swal.fire({
+        title: 'ชำระทั้งหมดพร้อมกัน?',
+        html: `<p style="margin-bottom:10px;">บันทึกการชำระสำหรับทุกคนที่ค้างอยู่:</p>
+               <div style="max-height:200px;overflow-y:auto;text-align:left;font-size:13px;background:#f8fafc;border-radius:8px;padding:10px;">${nameList}</div>
+               <p style="margin-top:12px;font-weight:700;font-size:16px;color:#1d4ed8;">รวม ฿${totalAmt.toFixed(2)}</p>`,
+        icon: 'question', showCancelButton: true,
+        confirmButtonColor: '#16a34a',
+        confirmButtonText: '✅ ยืนยันชำระทั้งหมด', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        const today = getTodayString();
+        report.unpaid.forEach(item => {
+            state.allPayments.push({ timestamp: new Date().toISOString(), paymentDate: today, name: item.name, amount: parseFloat(item.balance.toFixed(2)), source: 'manual_payment' });
+        });
+        updateAndRender();
+        Swal.fire({ icon: 'success', title: `ชำระทั้งหมด ${report.unpaid.length} คน สำเร็จ!`, toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    });
+}
+
+function applySettingsToUI() {
+    document.getElementById('shuttlecockPrice').value = state.settings.shuttlecockPrice || 0;
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+    loadFromStorage();
+    ensureIntegrity();
+    syncGameIdCounter(); 
+
+    const today = getTodayString();
+    selectedDate = today;
+    document.getElementById('workingDate').value = today;
+    document.getElementById('summaryEndDate').value = today;
+    const d = new Date(today); d.setDate(1);
+    document.getElementById('summaryStartDate').value = d.toISOString().split('T')[0];
+
+    applySettingsToUI();
+    renderAll();
+    updateTabBadges();
+
+    // Event listener สำหรับช่องค้นหาชื่อหน้าบัญชี
+    document.getElementById('searchAccountInput')?.addEventListener('input', renderAccountTab);
+
+    // Date change
+    document.getElementById('workingDate').addEventListener('change', e => {
+        selectedDate = e.target.value;
+        currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+        ensureIntegrity();
+        updateAndRender();
+    });
+
+    // Tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+    });
+
+    // Player add
+    document.getElementById('btnAddPlayer').addEventListener('click', addPlayer);
+    document.getElementById('newPlayerName').addEventListener('keypress', e => { if (e.key === 'Enter') addPlayer(); });
+
+    // Player management
+    document.getElementById('btnClearTodayPlayers').addEventListener('click', clearTodayPlayers);
+    document.getElementById('btnClearAllPlayers').addEventListener('click', clearAllPlayers);
+
+    // Game recording
+    document.getElementById('btnRecordGame').addEventListener('click', recordGame);
+    document.getElementById('btnUseLastTeam').addEventListener('click', useLastTeam);
+    document.getElementById('btnPayAllUnpaid').addEventListener('click', payAllUnpaid);
+    document.getElementById('shuttlecockSpeeds').addEventListener('keypress', e => { if (e.key === 'Enter') recordGame(); });
+
+    // Game dropdowns
+    ['player1','player2','player3','player4'].forEach(id => {
+        document.getElementById(id).addEventListener('change', e => {
+            currentGameSelection[id] = e.target.value;
+            renderGameDropdowns();
+        });
+    });
+
+    // Price setting
+    document.getElementById('shuttlecockPrice').addEventListener('change', e => {
+        state.settings.shuttlecockPrice = Math.max(0, parseFloat(e.target.value) || 0);
+        saveToStorage();
+        renderDailySummaryTable();
+    });
+
+    // Confirm & Clear
+    document.getElementById('btnConfirmSave').addEventListener('click', confirmDailySummaryAndSave);
+    document.getElementById('btnClearToday').addEventListener('click', clearTodayData);
+
+    // File save/load
+    document.getElementById('btnSave').addEventListener('click', saveToFile);
+    document.getElementById('loadFile').addEventListener('change', loadFromFile);
+
+    // Payment modal
+    document.getElementById('btnClosePayment').addEventListener('click', closePaymentModal);
+    document.getElementById('btnCancelPayment').addEventListener('click', closePaymentModal);
+    document.getElementById('btnSubmitPayment').addEventListener('click', submitPayment);
+    document.getElementById('payment-amount').addEventListener('keypress', e => { if (e.key === 'Enter') submitPayment(); });
+
+    // Quick debt modal
+    document.getElementById('btnOpenQuickDebt').addEventListener('click', openQuickDebtModal);
+    document.getElementById('btnCloseDebt').addEventListener('click', closeQuickDebtModal);
+    document.getElementById('btnCancelDebt').addEventListener('click', closeQuickDebtModal);
+    document.getElementById('btnSubmitDebt').addEventListener('click', submitDebt);
+
+    // Rename modal
+    document.getElementById('btnCloseRename').addEventListener('click', closeRenameModal);
+    document.getElementById('btnCancelRename').addEventListener('click', closeRenameModal);
+    document.getElementById('btnSubmitRename').addEventListener('click', submitRename);
+    document.getElementById('rename-new-name').addEventListener('keypress', e => { if (e.key === 'Enter') submitRename(); });
+
+    // History
+    document.getElementById('btnFilterHistory').addEventListener('click', renderHistoryTab);
+    document.getElementById('btnRefreshHistory').addEventListener('click', renderHistoryTab);
+
+    // Export buttons
+    document.getElementById('btnExportGamesImg').addEventListener('click', exportGamesImage);
+    document.getElementById('btnExportSummaryImg').addEventListener('click', exportSummaryImage);
+    document.getElementById('btnExportAccountImg').addEventListener('click', exportAccountImage);
+    document.getElementById('btnExportAccountText').addEventListener('click', exportAccountText);
+
+    // Close modals on overlay click
+    ['payment-modal','quick-debt-modal','rename-modal'].forEach(id => {
+        document.getElementById(id).addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+    });
+
+    // Event delegation player chips
+    document.getElementById('playerList').addEventListener('click', e => {
+        const actionEl = e.target.closest('[data-action]');
+        if (!actionEl) return;
+        const action = actionEl.dataset.action;
+        const name = actionEl.dataset.name;
+        if (!name) return;
+        if (action === 'toggle') {
+            if (!e.target.closest('button')) togglePlayerPresence(name);
+        } else if (action === 'rename') {
+            e.stopPropagation();
+            openRenameModal(name);
+        } else if (action === 'delete') {
+            e.stopPropagation();
+            deletePlayer(name);
+        }
+    });
+
+    // Event delegation account tab
+    document.getElementById('tab-account').addEventListener('click', e => {
+        const btn = e.target.closest('.pay-btn');
+        if (!btn) return;
+        const name = btn.dataset.name;
+        const balance = btn.dataset.balance;
+        if (name && balance) openPaymentModal(name, balance);
+    });
+
+    // Event delegation games list
+    document.getElementById('gamesList').addEventListener('click', e => {
+        const btn = e.target.closest('[data-game-id]');
+        if (!btn || btn.disabled) return;
+        const gameId = Number(btn.dataset.gameId);
+        const action = btn.dataset.action;
+        if (action === 'move-up')    moveGame(gameId, -1);
+        if (action === 'move-down')  moveGame(gameId,  1);
+        if (action === 'edit-game')  editGame(gameId);
+        if (action === 'remove-game') removeGame(gameId);
+    });
+
+    // Event delegation daily summary table
+    document.getElementById('summaryTable').addEventListener('click', e => {
+        const btn = e.target.closest('[data-action="toggle-paid"]');
+        if (!btn) return;
+        const name = btn.dataset.name;
+        if (name) togglePaidStatus(name);
+    });
+
+    // Event delegation history tab
+    document.getElementById('overall-summary-content').addEventListener('click', e => {
+        const delBtn = e.target.closest('.del-payment-btn');
+        if (delBtn) {
+            e.stopPropagation();
+            const payIdx  = parseInt(delBtn.dataset.payIdx, 10);
+            const name    = delBtn.dataset.playerName;
+            const amount  = delBtn.dataset.amount;
+            const date    = delBtn.dataset.date;
+            deletePayment(payIdx, name, amount, date);
+            return;
+        }
+        const row = e.target.closest('[data-action="toggle-history"]');
+        if (!row) return;
+        const detailId = row.dataset.detailId;
+        if (detailId) toggleHistoryDetails(detailId, row);
+    });
+});
+
+// แจ้งเตือนเมื่อกำลังจะปิดแท็บแบบไม่บันทึก
+window.addEventListener('beforeunload', (e) => {
+    if (_isDailyDirty) {
+        e.preventDefault();
+        e.returnValue = 'คุณมีเกมที่บันทึกไว้แต่ยังไม่ได้ยืนยันลงบัญชีรวม แน่ใจหรือไม่ที่จะออกจากหน้านี้?';
+    }
+});
+
+// ============================================================
+// EXPORT UTILITIES
+// ============================================================
+function formatDateThai(dateStr) {
+    if (!dateStr) dateStr = getTodayString();
+    const d = new Date(dateStr + 'T00:00:00');
+    return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+async function captureAndDownload(element, filename) {
+    Swal.fire({ title: 'กำลังสร้างรูป...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    try {
+        const canvas = await html2canvas(element, {
+            scale: 2.5,
+            useCORS: true,
+            backgroundColor: '#f1f5f9',
+            logging: false,
+            onclone: (doc, el) => {
+                el.style.fontFamily = "'Sarabun', sans-serif";
+            }
+        });
+        canvas.toBlob(blob => {
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+            if (isIOS) {
+                const url = URL.createObjectURL(blob);
+                Swal.fire({
+                    icon: 'info',
+                    title: 'บันทึกรูปบน iPhone/iPad',
+                    html: `<p style="font-size:14px;">กดปุ่มด้านล่างเพื่อเปิดรูป แล้ว<br><strong>กดค้างที่รูป → บันทึกรูปภาพ</strong></p>`,
+                    confirmButtonText: '🖼️ เปิดรูป',
+                    showCancelButton: true,
+                    cancelButtonText: 'ปิด',
+                    confirmButtonColor: '#1d4ed8'
+                }).then(r => {
+                    if (r.isConfirmed) window.open(url, '_blank');
+                    else URL.revokeObjectURL(url);
+                });
+            } else {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                Swal.fire({ icon: 'success', title: 'บันทึกรูปสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+            }
+        }, 'image/png');
+    } catch(e) {
+        console.error(e);
+        Swal.fire('เกิดข้อผิดพลาด', 'ไม่สามารถสร้างรูปได้: ' + e.message, 'error');
+    }
+}
+
+async function renderOffscreenAndCapture(buildFn, filename) {
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:800px;background:#f1f5f9;padding:20px;font-family:Sarabun,sans-serif;';
+    document.body.appendChild(wrapper);
+    buildFn(wrapper);
+    await new Promise(r => setTimeout(r, 100)); 
+    await captureAndDownload(wrapper, filename);
+    document.body.removeChild(wrapper);
+}
+
+// ============================================================
+// DELETE PAYMENT
+// ============================================================
+function deletePayment(payIdx, playerName, amount, date) {
+    if (payIdx < 0 || payIdx >= state.allPayments.length) {
+        Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบรายการชำระนี้', 'error'); return;
+    }
+    Swal.fire({
+        title: 'ลบรายการชำระเงิน?',
+        html: `<p>ชื่อ: <strong>${escapeHtml(playerName)}</strong></p>
+               <p>จำนวน: <strong>฿${parseFloat(amount).toFixed(2)}</strong></p>
+               <p>วันที่: <strong>${new Date(date+'T00:00:00').toLocaleDateString('th-TH')}</strong></p>
+               <p style="color:#dc2626;margin-top:8px;font-size:13px;">⚠️ ยอดค้างชำระของผู้เล่นคนนี้จะเพิ่มขึ้น</p>`,
+        icon: 'warning', showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        confirmButtonText: 'ยืนยันลบ', cancelButtonText: 'ยกเลิก'
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        state.allPayments.splice(payIdx, 1);
+        updateAndRender();
+        const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
+        if (activeTab === 'history') renderHistoryTab();
+        Swal.fire({ icon: 'success', title: 'ลบรายการชำระสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
+    });
+}
+
+// ─────────────────────────────────────────────
+// EXPORT 1: เกมที่บันทึกแล้ว → รูปภาพ
+// ─────────────────────────────────────────────
+function exportGamesImage() {
+    const dd = getCurrentDailyData();
+    if (!dd.games || dd.games.length === 0) {
+        Swal.fire({ icon: 'info', title: 'ยังไม่มีเกม', text: 'ยังไม่มีข้อมูลเกมที่บันทึก' }); return;
+    }
+    const dateStr = formatDateThai(selectedDate);
+    const totalBalls = dd.games.reduce((s, g) => s + (g.shuttlecocksUsed || 0), 0);
+
+    renderOffscreenAndCapture(wrapper => {
+        const speedCounts = dd.games.reduce((acc, g) => {
+            (g.shuttlecockSpeeds || []).forEach(s => { const k = String(s).trim(); if (k) acc[k] = (acc[k] || 0) + 1; });
+            return acc;
+        }, {});
+        const speedSummary = Object.entries(speedCounts).sort((a,b) => a[0].localeCompare(b[0])).map(([s,c]) => `เบอร์ ${s}: ${c} ลูก`).join(' | ');
+
+        const gamesHTML = dd.games.map((g, idx) => {
+            const price = g.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
+            const costEach = ((g.shuttlecocksUsed || 0) * price / 4).toFixed(2);
+            const speeds = (g.shuttlecockSpeeds || []).join(', ');
+            const [p1,p2,p3,p4] = g.players;
+            const tag = (n, bg) => n ? `<span style="background:${bg};color:white;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;display:inline-block;margin:2px;">${n}</span>` : '';
+            const colors = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
+            const col = (n) => { if (!n) return '#888'; const s = [...n].reduce((a,c) => a+c.charCodeAt(0),0); return colors[s % colors.length]; };
+            return `<div style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:10px;border:1.5px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:8px;">
+                    <span style="font-weight:800;font-size:15px;color:#374151;">เกมที่ ${idx + 1}</span>
+                    <span style="font-size:12px;color:#6b7280;">🏸 ${speeds} (${g.shuttlecocksUsed} ลูก @${price.toFixed(2)} บ.) · คนละ ${costEach} บ.</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+                    <span style="width:56px;font-weight:700;color:#3b82f6;font-size:13px;">ทีม A</span>
+                    <div>${tag(p1,col(p1))} ${tag(p2,col(p2))}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="width:56px;font-weight:700;color:#ef4444;font-size:13px;">ทีม B</span>
+                    <div>${tag(p3,col(p3))} ${tag(p4,col(p4))}</div>
+                </div>
+            </div>`;
+        }).join('');
+
+        wrapper.innerHTML = `
+            <div style="background:linear-gradient(135deg,#1d4ed8,#1e40af);border-radius:16px;padding:20px 24px;margin-bottom:16px;color:white;">
+                <div style="font-size:22px;font-weight:800;margin-bottom:4px;">🏸 เกมที่บันทึกแล้ว</div>
+                <div style="font-size:14px;opacity:0.9;">${dateStr}</div>
+                <div style="display:flex;gap:20px;margin-top:14px;">
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;">${dd.games.length}</div>
+                        <div style="font-size:12px;opacity:0.85;">เกมทั้งหมด</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;text-align:center;">
+                        <div style="font-size:24px;font-weight:800;">${totalBalls}</div>
+                        <div style="font-size:12px;opacity:0.85;">ลูกทั้งหมด</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;flex:1;text-align:center;">
+                        <div style="font-size:13px;font-weight:600;">${speedSummary || '-'}</div>
+                        <div style="font-size:12px;opacity:0.85;">สรุปตามเบอร์</div>
+                    </div>
+                </div>
+            </div>
+            ${gamesHTML}
+            <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px;">สร้างโดยโปรแกรมคำนวณค่าลูกแบดมินตัน</div>`;
+    }, `games-${selectedDate}.png`);
+}
+
+// ─────────────────────────────────────────────
+// EXPORT 2: สรุปค่าใช้จ่ายประจำวัน → รูปภาพ
+// ─────────────────────────────────────────────
+function exportSummaryImage() {
+    const { playerDetails, grandTotal } = calculateDailySummary();
+    const all = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0).sort((a,b) => a.name.localeCompare(b.name,'th'));
+    if (all.length === 0) {
+        Swal.fire({ icon: 'info', title: 'ยังไม่มีข้อมูล', text: 'ยังไม่มีผู้เล่นที่มีค่าใช้จ่าย' }); return;
+    }
+    const dateStr = formatDateThai(selectedDate);
+    const unpaid = all.filter(p => !p.paid);
+    const paid = all.filter(p => p.paid);
+    const price = state.settings.shuttlecockPrice || 0;
+
+    const makeRow = (p, bg, textColor) => `
+        <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:10px 14px;font-weight:600;color:${textColor};background:${bg};">${p.name}</td>
+            <td style="padding:10px 14px;text-align:center;color:#374151;background:${bg};font-size:13px;">${p.gameIndices.join(', ') || '-'}</td>
+            <td style="padding:10px 14px;text-align:right;font-weight:800;color:${textColor};background:${bg};font-size:15px;">${p.totalCost.toFixed(2)}</td>
+            <td style="padding:10px 14px;text-align:center;background:${bg};"><span style="background:${p.paid?'#dcfce7':'#fee2e2'};color:${p.paid?'#15803d':'#b91c1c'};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">${p.paid?'จ่ายแล้ว':'ยังไม่จ่าย'}</span></td>
+        </tr>`;
+
+    const makeSection = (players, label, headerBg, headerColor, rowBg, rowText, totalBg) => {
+        if (!players.length) return '';
+        const tot = players.reduce((s,p) => s+p.totalCost, 0);
+        return `
+            <div style="margin-bottom:16px;">
+                <div style="background:${headerBg};padding:8px 16px;border-radius:8px 8px 0 0;font-weight:700;font-size:14px;color:${headerColor};">${label}</div>
+                <div style="border-radius:0 0 8px 8px;overflow:hidden;border:1.5px solid ${headerBg};border-top:none;">
+                    <table style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr style="background:${headerBg}20;">
+                                <th style="padding:8px 14px;text-align:left;font-size:12px;color:#6b7280;">ชื่อ</th>
+                                <th style="padding:8px 14px;text-align:center;font-size:12px;color:#6b7280;">เกม</th>
+                                <th style="padding:8px 14px;text-align:right;font-size:12px;color:#6b7280;">ค่าลูก (฿)</th>
+                                <th style="padding:8px 14px;text-align:center;font-size:12px;color:#6b7280;">สถานะ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${players.map(p => makeRow(p, rowBg, rowText)).join('')}
+                        </tbody>
+                        <tfoot>
+                            <tr style="background:${totalBg};">
+                                <td colspan="2" style="padding:10px 14px;font-weight:700;">รวม (${players.length} คน)</td>
+                                <td style="padding:10px 14px;text-align:right;font-weight:800;font-size:16px;color:${headerColor};">${tot.toFixed(2)}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>`;
+    };
+
+    renderOffscreenAndCapture(wrapper => {
+        wrapper.innerHTML = `
+            <div style="background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:16px;padding:20px 24px;margin-bottom:16px;color:white;">
+                <div style="font-size:22px;font-weight:800;margin-bottom:4px;">🧾 สรุปค่าใช้จ่ายประจำวัน</div>
+                <div style="font-size:14px;opacity:0.9;">${dateStr}</div>
+                <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap;">
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;text-align:center;">
+                        <div style="font-size:22px;font-weight:800;">${all.length}</div>
+                        <div style="font-size:12px;opacity:0.85;">ผู้เล่น</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;text-align:center;">
+                        <div style="font-size:22px;font-weight:800;">${unpaid.length}</div>
+                        <div style="font-size:12px;opacity:0.85;">ยังไม่จ่าย</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;text-align:center;">
+                        <div style="font-size:22px;font-weight:800;">${paid.length}</div>
+                        <div style="font-size:12px;opacity:0.85;">จ่ายแล้ว</div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;flex:1;text-align:center;">
+                        <div style="font-size:22px;font-weight:800;">฿${grandTotal.toFixed(2)}</div>
+                        <div style="font-size:12px;opacity:0.85;">รวมทั้งหมด</div>
+                    </div>
+                </div>
+                ${price > 0 ? `<div style="margin-top:10px;font-size:13px;opacity:0.85;">ราคาต่อลูก: ฿${price.toFixed(2)}</div>` : ''}
+            </div>
+            ${makeSection(unpaid, '⚠️ ยังไม่จ่าย', '#fee2e2', '#b91c1c', 'white', '#374151', '#fef2f2')}
+            ${makeSection(paid, '✅ จ่ายแล้ว', '#dcfce7', '#15803d', 'white', '#374151', '#f0fdf4')}
+            <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px;">สร้างโดยโปรแกรมคำนวณค่าลูกแบดมินตัน</div>`;
+    }, `summary-${selectedDate}.png`);
+}
+
+// ─────────────────────────────────────────────
+// EXPORT 3A: บัญชีรวม → รูปภาพ (ค้างชำระ + เครดิต)
+// ─────────────────────────────────────────────
+function exportAccountImage() {
+    const { report, totalUnpaid, totalCredit } = calculateOverallBalance();
+    if (report.unpaid.length === 0 && report.withCredit.length === 0) {
+        Swal.fire({ icon: 'info', title: 'ไม่มีรายการ', text: 'ไม่มีผู้ค้างชำระหรือมีเครดิต' }); return;
+    }
+    const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const makePersonRow = (item, i) => {
+        const balance = Math.abs(item.balance);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.05);background:${i%2===0?'white':'#fafafa'};">
+            <div>
+                <div style="font-weight:700;font-size:14px;color:#1e293b;">${i+1}. ${item.name}</div>
+                <div style="font-size:11px;color:#94a3b8;margin-top:1px;">เรียกเก็บ ฿${item.totalDebt.toFixed(2)} · จ่ายแล้ว ฿${item.totalPaid.toFixed(2)}</div>
+            </div>
+            <div style="font-size:16px;font-weight:800;">฿${balance.toFixed(2)}</div>
+        </div>`;
+    };
+
+    renderOffscreenAndCapture(wrapper => {
+        const unpaidBlock = report.unpaid.length ? `
+            <div style="margin-bottom:16px;">
+                <div style="background:#dc2626;color:white;padding:12px 18px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+                    <div><div style="font-size:16px;font-weight:800;">⚠️ ค้างชำระ</div><div style="font-size:12px;opacity:0.85;">${report.unpaid.length} คน</div></div>
+                    <div style="text-align:right;"><div style="font-size:20px;font-weight:800;">฿${totalUnpaid.toFixed(2)}</div><div style="font-size:11px;opacity:0.85;">รวมที่ค้าง</div></div>
+                </div>
+                <div style="border:2px solid #fecaca;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
+                    ${report.unpaid.map((item, i) => makePersonRow(item, i)).join('')}
+                </div>
+            </div>` : '';
+
+        const creditBlock = report.withCredit.length ? `
+            <div style="margin-bottom:16px;">
+                <div style="background:#1d4ed8;color:white;padding:12px 18px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
+                    <div><div style="font-size:16px;font-weight:800;">💰 มีเครดิต</div><div style="font-size:12px;opacity:0.85;">${report.withCredit.length} คน</div></div>
+                    <div style="text-align:right;"><div style="font-size:20px;font-weight:800;">฿${totalCredit.toFixed(2)}</div><div style="font-size:11px;opacity:0.85;">รวมเครดิต</div></div>
+                </div>
+                <div style="border:2px solid #bfdbfe;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
+                    ${report.withCredit.map((item, i) => makePersonRow(item, i)).join('')}
+                </div>
+            </div>` : '';
+
+        wrapper.innerHTML = `
+            <div style="background:linear-gradient(135deg,#4c1d95,#6d28d9);border-radius:16px;padding:20px 24px;margin-bottom:16px;color:white;">
+                <div style="font-size:22px;font-weight:800;margin-bottom:4px;">💳 สรุปยอดรวมบัญชี</div>
+                <div style="font-size:14px;opacity:0.9;">ข้อมูล ณ ${today}</div>
+            </div>
+            ${unpaidBlock}
+            ${creditBlock}
+            <div style="text-align:center;font-size:11px;color:#9ca3af;margin-top:8px;">สร้างโดยโปรแกรมคำนวณค่าลูกแบดมินตัน</div>`;
+    }, `account-${getTodayString()}.png`);
+}
+
+// ─────────────────────────────────────────────
+// EXPORT 3B: บัญชีรวม → ข้อความสำหรับ LINE
+// ─────────────────────────────────────────────
+function exportAccountText() {
+    const { report, totalUnpaid, totalCredit } = calculateOverallBalance();
+    const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    let text = `🏸 สรุปยอดบัญชีแบดมินตัน\n`;
+    text += `📅 ${today}\n`;
+    text += `${'─'.repeat(28)}\n`;
+
+    if (report.unpaid.length > 0) {
+        text += `\n⚠️ ยังค้างชำระ (${report.unpaid.length} คน)\n`;
+        text += `${'─'.repeat(28)}\n`;
+        report.unpaid.forEach((item, i) => {
+            const nameStr = item.name.padEnd(16, ' ');
+            text += `${i+1}. ${nameStr}฿${item.balance.toFixed(2)}\n`;
+        });
+        text += `${'─'.repeat(28)}\n`;
+        text += `💸 รวมค้างทั้งหมด: ฿${totalUnpaid.toFixed(2)}\n`;
+    } else {
+        text += `\n✅ ไม่มีผู้ค้างชำระ\n`;
+    }
+
+    if (report.withCredit.length > 0) {
+        text += `\n💰 มีเครดิต (${report.withCredit.length} คน)\n`;
+        text += `${'─'.repeat(28)}\n`;
+        report.withCredit.forEach((item, i) => {
+            const nameStr = item.name.padEnd(16, ' ');
+            text += `${i+1}. ${nameStr}฿${Math.abs(item.balance).toFixed(2)}\n`;
+        });
+        text += `${'─'.repeat(28)}\n`;
+        text += `💎 รวมเครดิต: ฿${totalCredit.toFixed(2)}\n`;
+    }
+
+    if (report.paidInFull.length > 0) {
+        text += `\n✅ ชำระครบแล้ว: ${report.paidInFull.map(p => p.name).join(', ')}\n`;
+    }
+
+    text += `\n🏸 สร้างโดยโปรแกรมคำนวณค่าลูกแบดมินตัน`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            Swal.fire({
+                icon: 'success',
+                title: 'คัดลอกสำเร็จ!',
+                html: `<p style="font-size:14px;">ข้อความถูกคัดลอกไปยัง clipboard แล้ว<br>นำไปวางใน LINE ได้เลย 📋</p>
+                       <textarea style="width:100%;height:150px;font-size:12px;margin-top:12px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-family:monospace;resize:none;">${text}</textarea>`,
+                confirmButtonText: 'เข้าใจแล้ว',
+                confirmButtonColor: '#06b6d4'
+            });
+        }).catch(() => fallbackCopyText(text));
+    } else {
+        fallbackCopyText(text);
+    }
+}
+
+function fallbackCopyText(text) {
+    Swal.fire({
+        title: 'ข้อความสรุป LINE',
+        html: `<p style="font-size:13px;color:#64748b;margin-bottom:8px;">กด Ctrl+A แล้ว Ctrl+C (หรือแตะค้างแล้วเลือกทั้งหมด) เพื่อคัดลอก</p>
+               <textarea id="swal-copy-area" style="width:100%;height:180px;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-family:monospace;resize:none;">${text}</textarea>`,
+        confirmButtonText: 'ปิด',
+        confirmButtonColor: '#06b6d4',
+        didOpen: () => {
+            const ta = document.getElementById('swal-copy-area');
+            ta.select();
+            try { document.execCommand('copy'); } catch(e) {}
+        }
+    });
+}
+
+// ลงทะเบียน Service Worker สำหรับ PWA
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker Registered'))
+      .catch(err => console.log('Service Worker Failed', err));
+  });
+}
+</script>
+</body>
+</html>
