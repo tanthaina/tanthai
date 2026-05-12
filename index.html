@@ -172,6 +172,7 @@
         <button class="tab-btn active" data-tab="daily"><i class="fas fa-calculator"></i><span>คิดเงินรายวัน</span><span id="badge-daily" class="tab-badge" style="display:none;"></span></button>
         <button class="tab-btn" data-tab="account"><i class="fas fa-wallet"></i><span>บัญชีรวม</span><span id="badge-account" class="tab-badge" style="display:none;"></span></button>
         <button class="tab-btn" data-tab="history"><i class="fas fa-history"></i><span>ประวัติ</span></button>
+        <button class="tab-btn" data-tab="settings"><i class="fas fa-cog"></i><span>ตั้งค่าบัญชี</span></button>
     </div>
 
     <div id="tab-daily" class="tab-content space-y-4">
@@ -183,6 +184,12 @@
             </div>
             <div class="card-body space-y-3">
                 <p class="text-sm text-gray-500">คลิกที่ชื่อ = เลือก/ยกเลิกการมาวันนี้ &nbsp;|&nbsp; ✏️ เปลี่ยนชื่อ &nbsp;|&nbsp; 🗑️ ลบออกจากระบบ</p>
+                
+                <!-- 🛡️ นำ oninput กลับมาใส่ใน HTML ตามเดิม เพื่อให้ชัวร์ว่าทำงานทันที -->
+                <div class="relative mt-2 mb-2">
+                    <input type="text" id="searchDailyPlayer" class="form-control" placeholder="🔍 ค้นหาชื่อผู้เล่น..." oninput="filterDailyPlayers()" style="border-radius: 8px;">
+                </div>
+
                 <div class="flex flex-col sm:flex-row gap-2">
                     <select id="newPlayerPrefix" class="form-control form-select" style="width:auto; flex-shrink:0;">
                         <option value="ทั่วไป">ทั่วไป</option>
@@ -304,7 +311,9 @@
             </div>
         </div>
 
-    </div><div id="tab-account" class="tab-content hidden space-y-4">
+    </div>
+    
+    <div id="tab-account" class="tab-content hidden space-y-4">
         <div class="card">
             <div class="card-header">
                 <div class="section-icon bg-blue-100 text-blue-600"><i class="fas fa-wallet"></i></div>
@@ -342,7 +351,9 @@
                 </div>
             </div>
         </div>
-    </div><div id="tab-history" class="tab-content hidden space-y-4">
+    </div>
+    
+    <div id="tab-history" class="tab-content hidden space-y-4">
         <div class="card">
             <div class="card-header">
                 <div class="section-icon bg-indigo-100 text-indigo-600"><i class="fas fa-history"></i></div>
@@ -367,7 +378,32 @@
                 </div>
             </div>
         </div>
-    </div></div><div id="payment-modal" class="modal-overlay hidden">
+    </div>
+
+    <div id="tab-settings" class="tab-content hidden space-y-4">
+        <div class="card">
+            <div class="card-header">
+                <div class="section-icon bg-gray-100 text-gray-600"><i class="fas fa-cog"></i></div>
+                <h2 class="text-gray-700">ตั้งค่าบัญชีรับเงิน (PromptPay)</h2>
+            </div>
+            <div class="card-body space-y-3">
+                <p class="text-sm text-gray-500 mb-4">ข้อมูลนี้จะถูกแนบไปในข้อความเมื่อคุณกดปุ่มส่ง LINE ทวงเงิน</p>
+                <div>
+                    <label class="form-label">ชื่อบัญชี / ชื่อผู้รับ</label>
+                    <input type="text" id="settingBankName" class="form-control" placeholder="เช่น นายสมชาย ใจดี">
+                </div>
+                <div>
+                    <label class="form-label">เลข PromptPay / เลขบัญชี</label>
+                    <input type="text" id="settingBankNumber" class="form-control" placeholder="เช่น 081-234-5678">
+                </div>
+                <button class="btn btn-primary mt-2" onclick="savePromptPaySettings()"><i class="fas fa-save"></i> บันทึกการตั้งค่า</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="payment-modal" class="modal-overlay hidden">
     <div class="modal-box">
         <div class="modal-header">
             <h3 class="text-lg font-bold text-green-700"><i class="fas fa-hand-holding-usd mr-2"></i>ชำระเงินด่วน</h3>
@@ -459,18 +495,17 @@ const PLAYER_COLORS = [
 let state = createDefaultState();
 let selectedDate = getTodayString();
 let currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
-let _gameIdCounter = Date.now(); // counter ป้องกัน ID ชนกัน
-let _isDailyDirty = false; // แจ้งเตือนเมื่อลืมกดบันทึกและพยายามออกจากหน้าเว็บ
+let _gameIdCounter = Date.now(); 
+let _isDailyDirty = false; 
 
 function generateGameId() {
     return ++_gameIdCounter;
 }
 
 function syncGameIdCounter() {
-    // หา game ID สูงสุดใน state ทั้งหมด แล้วตั้ง counter ให้สูงกว่า
     let maxId = _gameIdCounter;
-    Object.values(state.dailyData || {}).forEach(daily => {
-        (daily.games || []).forEach(g => {
+    Object.values(state.dailyData || {}).forEach(function(daily) {
+        (daily.games || []).forEach(function(g) {
             if (typeof g.id === 'number' && g.id > maxId) maxId = g.id;
         });
     });
@@ -482,17 +517,22 @@ function createDefaultState() {
 }
 
 // ============================================================
-// UTILS
+// UTILS & DATA SANITIZATION
 // ============================================================
 function getTodayString() {
     const d = new Date();
     return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 }
 
+// 🛡️ ป้องกัน HTML Injection เมื่อดึงชื่อไปใส่ใน DOM
 function escapeHtml(str) {
-    const d = document.createElement('div');
-    d.appendChild(document.createTextNode(str));
-    return d.innerHTML;
+    if (str == null) return '';
+    return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
 function formatCurrency(amount) {
@@ -501,7 +541,7 @@ function formatCurrency(amount) {
 
 function getPlayerColor(name) {
     if (!name) return PLAYER_COLORS[0];
-    const sum = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
+    const sum = [...String(name)].reduce(function(a, c) { return a + c.charCodeAt(0); }, 0);
     return PLAYER_COLORS[sum % PLAYER_COLORS.length];
 }
 
@@ -510,15 +550,12 @@ function getCurrentDailyData() {
     return state.dailyData[selectedDate];
 }
 
-// ============================================================
-// STORAGE
-// ============================================================
-let _storageFailed = false; // ป้องกัน toast ซ้ำ
+let _storageFailed = false; 
 
 function saveToStorage() {
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        _storageFailed = false; // รีเซ็ตสถานะเมื่อบันทึกสำเร็จ
+        _storageFailed = false; 
     } catch (e) {
         console.error('Storage save failed', e);
         if (!_storageFailed) {
@@ -532,7 +569,7 @@ function saveToStorage() {
                 showCancelButton: true,
                 cancelButtonText: 'ปิด',
                 confirmButtonColor: '#1d4ed8'
-            }).then(r => { if (r.isConfirmed) saveToFile(); });
+            }).then(function(r) { if (r.isConfirmed) saveToFile(); });
         }
     }
 }
@@ -542,21 +579,30 @@ function loadFromStorage() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (raw) state = JSON.parse(raw) || createDefaultState();
         else state = createDefaultState();
-    } catch { state = createDefaultState(); }
+    } catch (e) { state = createDefaultState(); }
 }
 
+// 🛡️ ซ่อมแซมและกวาดล้างข้อมูลขยะ (Data Sanitization)
 function ensureIntegrity() {
     state.settings = state.settings || {};
     state.settings.shuttlecockPrice = state.settings.shuttlecockPrice || 0;
-    state.masterPlayerList = state.masterPlayerList || [];
-    state.allTransactions = state.allTransactions || [];
-    state.allPayments = state.allPayments || [];
+    
+    // บังคับแปลง masterPlayerList ให้เป็น String ทั้งหมดและลบค่าว่าง
+    if (!Array.isArray(state.masterPlayerList)) state.masterPlayerList = [];
+    state.masterPlayerList = state.masterPlayerList
+        .filter(function(p) { return p != null; })
+        .map(function(p) { return String(p).trim(); })
+        .filter(function(p) { return p !== ''; });
+        
+    state.allTransactions = Array.isArray(state.allTransactions) ? state.allTransactions : [];
+    state.allPayments = Array.isArray(state.allPayments) ? state.allPayments : [];
     state.dailyData = state.dailyData || {};
+    
     if (!state.dailyData[selectedDate]) state.dailyData[selectedDate] = { players: [], games: [] };
     const dd = state.dailyData[selectedDate];
-    dd.players = dd.players || [];
-    dd.games = dd.games || [];
-    dd.players.forEach(p => {
+    dd.players = Array.isArray(dd.players) ? dd.players : [];
+    dd.games = Array.isArray(dd.games) ? dd.games : [];
+    dd.players.forEach(function(p) {
         if (p.paid === undefined) p.paid = false;
         if (p.present === undefined) p.present = true;
     });
@@ -576,7 +622,7 @@ function loadFromFile(event) {
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = function(e) {
         try {
             const loaded = JSON.parse(e.target.result);
             if (loaded && 'masterPlayerList' in loaded && 'dailyData' in loaded) {
@@ -588,7 +634,7 @@ function loadFromFile(event) {
                 switchTab('daily');
                 Swal.fire({ icon: 'success', title: 'โหลดข้อมูลสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
             } else throw new Error('Invalid format');
-        } catch { Swal.fire('เกิดข้อผิดพลาด', 'ไฟล์ไม่ถูกต้องหรืออ่านไม่ได้', 'error'); }
+        } catch (err) { Swal.fire('เกิดข้อผิดพลาด', 'ไฟล์ไม่ถูกต้องหรืออ่านไม่ได้', 'error'); }
     };
     reader.readAsText(file);
     event.target.value = null;
@@ -598,43 +644,61 @@ function loadFromFile(event) {
 // CORE LOGIC — PLAYERS
 // ============================================================
 function addPlayer() {
-    const prefix = document.getElementById('newPlayerPrefix').value;
+    const prefixElement = document.getElementById('newPlayerPrefix');
     const nameInput = document.getElementById('newPlayerName');
-    const raw = nameInput.value.trim();
-    if (!raw) return;
-    const name = prefix === 'ทั่วไป' ? raw : `${prefix}: ${raw}`;
+    
+    if (!prefixElement || !nameInput) return;
 
-    if (state.masterPlayerList.includes(name)) {
-        Swal.fire({ icon: 'info', title: 'มีชื่อนี้แล้ว', text: 'กรุณาคลิกที่ชื่อเพื่อเลือกว่ามาวันนี้', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
+    const prefix = prefixElement.value;
+    const raw = nameInput.value.trim();
+    
+    if (!raw) {
+        Swal.fire({ icon: 'warning', title: 'แจ้งเตือน', text: 'กรุณาพิมพ์ชื่อผู้เล่น', timer: 2000, toast: true, position: 'top' });
+        return;
+    }
+    
+    const name = (prefix === 'ทั่วไป' ? raw : `${prefix}: ${raw}`).trim();
+
+    // เช็คชื่อซ้ำแบบ Safe Case-insensitive
+    if (state.masterPlayerList.some(function(p) { return String(p).toLowerCase() === name.toLowerCase(); })) {
+        Swal.fire({ icon: 'info', title: 'มีชื่อนี้แล้ว', text: 'รายชื่อนี้มีอยู่แล้วในระบบ', toast: true, position: 'top-end', showConfirmButton: false, timer: 3000 });
         return;
     }
 
     state.masterPlayerList.push(name);
-    state.masterPlayerList.sort((a, b) => a.localeCompare(b, 'th'));
+    // 🛡️ เรียงลำดับแบบปลอดภัย (Safe Sorting) กันพัง
+    state.masterPlayerList.sort(function(a, b) { return String(a).localeCompare(String(b), 'th'); });
 
     const dd = getCurrentDailyData();
-    let player = dd.players.find(p => p.name === name);
+    let player = dd.players.find(function(p) { return p.name === name; });
     if (player) { player.present = true; }
-    else { dd.players.push({ name, paid: false, present: true }); }
+    else { dd.players.push({ name: name, paid: false, present: true }); }
 
     nameInput.value = '';
-    document.getElementById('newPlayerPrefix').value = 'ทั่วไป';
+    prefixElement.value = 'ทั่วไป';
+    
+    // 🛡️ ล้างช่องค้นหาอัตโนมัติ เพื่อให้ชื่อใหม่แสดงให้เห็น
+    const searchInput = document.getElementById('searchDailyPlayer');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
     updateAndRender();
     Swal.fire({ icon: 'success', title: `เพิ่ม "${escapeHtml(name)}" สำเร็จ!`, toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
 }
 
 function togglePlayerPresence(name) {
     const dd = getCurrentDailyData();
-    let player = dd.players.find(p => p.name === name);
+    let player = dd.players.find(function(p) { return p.name === name; });
     if (!player) {
         if (!state.masterPlayerList.includes(name)) return;
-        player = { name, paid: false, present: true };
+        player = { name: name, paid: false, present: true };
         dd.players.push(player);
     } else {
         player.present = !player.present;
     }
     if (!player.present) {
-        Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
+        Object.keys(currentGameSelection).forEach(function(k) { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
     }
     updateAndRender();
 }
@@ -644,7 +708,7 @@ function openRenameModal(name) {
     document.getElementById('rename-old-display').textContent = name;
     document.getElementById('rename-new-name').value = name;
     document.getElementById('rename-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('rename-new-name').focus(), 100);
+    setTimeout(function() { document.getElementById('rename-new-name').focus(); }, 100);
 }
 
 function closeRenameModal() { document.getElementById('rename-modal').classList.add('hidden'); }
@@ -652,20 +716,28 @@ function closeRenameModal() { document.getElementById('rename-modal').classList.
 function submitRename() {
     const oldName = document.getElementById('rename-old-name').value;
     const newName = document.getElementById('rename-new-name').value.trim();
+    
     if (!newName) { Swal.fire('ข้อผิดพลาด', 'ชื่อใหม่ต้องไม่ว่าง', 'error'); return; }
     if (oldName === newName) { closeRenameModal(); return; }
-    if (state.masterPlayerList.some(m => m.toLowerCase() === newName.toLowerCase() && m !== oldName)) {
+    
+    if (state.masterPlayerList.some(function(m) { return String(m).toLowerCase() === newName.toLowerCase() && m !== oldName; })) {
         Swal.fire('ข้อผิดพลาด', `มีชื่อ "${escapeHtml(newName)}" อยู่แล้ว`, 'error'); return;
     }
+    
     const idx = state.masterPlayerList.indexOf(oldName);
-    if (idx !== -1) { state.masterPlayerList[idx] = newName; state.masterPlayerList.sort((a, b) => a.localeCompare(b, 'th')); }
-    state.allTransactions.forEach(t => { if (t.name === oldName) t.name = newName; });
-    state.allPayments.forEach(p => { if (p.name === oldName) p.name = newName; });
-    Object.values(state.dailyData).forEach(daily => {
-        daily.players.forEach(p => { if (p.name === oldName) p.name = newName; });
-        daily.games.forEach(g => { g.players = g.players.map(p => p === oldName ? newName : p); });
+    if (idx !== -1) { 
+        state.masterPlayerList[idx] = newName; 
+        state.masterPlayerList.sort(function(a, b) { return String(a).localeCompare(String(b), 'th'); }); 
+    }
+    
+    state.allTransactions.forEach(function(t) { if (t.name === oldName) t.name = newName; });
+    state.allPayments.forEach(function(p) { if (p.name === oldName) p.name = newName; });
+    Object.values(state.dailyData).forEach(function(daily) {
+        daily.players.forEach(function(p) { if (p.name === oldName) p.name = newName; });
+        daily.games.forEach(function(g) { g.players = g.players.map(function(p) { return p === oldName ? newName : p; }); });
     });
-    Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === oldName) currentGameSelection[k] = newName; });
+    Object.keys(currentGameSelection).forEach(function(k) { if (currentGameSelection[k] === oldName) currentGameSelection[k] = newName; });
+    
     closeRenameModal();
     updateAndRender();
     Swal.fire({ icon: 'success', title: 'เปลี่ยนชื่อสำเร็จ!', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
@@ -677,15 +749,18 @@ function deletePlayer(name) {
         html: `ผู้เล่นนี้จะถูก<strong>ลบออกจากทุกข้อมูล</strong>อย่างถาวร<br>รวมถึงประวัติการเล่นและการจ่ายเงินทั้งหมด`,
         icon: 'warning', showCancelButton: true,
         confirmButtonColor: '#dc2626', confirmButtonText: 'ใช่ ลบเลย!', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
+    }).then(function(r) {
         if (!r.isConfirmed) return;
-        state.masterPlayerList = state.masterPlayerList.filter(p => p !== name);
-        Object.values(state.dailyData).forEach(daily => {
-            daily.players = daily.players.filter(p => p.name !== name);
+        state.masterPlayerList = state.masterPlayerList.filter(function(p) { return p !== name; });
+        Object.values(state.dailyData).forEach(function(daily) {
+            daily.players = daily.players.filter(function(p) { return p.name !== name; });
         });
-        state.allTransactions = state.allTransactions.filter(t => t.name !== name);
-        state.allPayments = state.allPayments.filter(p => p.name !== name);
-        Object.keys(currentGameSelection).forEach(k => { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
+        
+        // ลบธุรกรรมเพื่อกันบั๊กบัญชีรวมค้าง (NaN)
+        state.allTransactions = state.allTransactions.filter(function(t) { return t.name !== name; });
+        state.allPayments = state.allPayments.filter(function(p) { return p.name !== name; });
+        
+        Object.keys(currentGameSelection).forEach(function(k) { if (currentGameSelection[k] === name) currentGameSelection[k] = ''; });
         updateAndRender();
         Swal.fire({ icon: 'success', title: 'ลบผู้เล่นสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
     });
@@ -696,10 +771,10 @@ function clearTodayPlayers() {
         title: 'ล้างรายชื่อวันนี้?', text: 'รายชื่อที่มาวันนี้และเกมที่บันทึกไว้จะถูกล้าง (รายชื่อหลักยังคงอยู่)',
         icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626',
         confirmButtonText: 'ล้างเลย!', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
+    }).then(function(r) {
         if (!r.isConfirmed) return;
         const dd = getCurrentDailyData();
-        dd.players.forEach(p => { p.present = false; p.paid = false; });
+        dd.players.forEach(function(p) { p.present = false; p.paid = false; });
         dd.games = [];
         currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
         updateAndRender();
@@ -711,10 +786,10 @@ function clearAllPlayers() {
         title: 'ล้างข้อมูลทั้งหมด?',
         html: `<p class="text-red-600 font-semibold">การดำเนินการนี้จะลบรายชื่อผู้เล่นและข้อมูลทั้งหมดอย่างถาวร!</p><p class="mt-2">พิมพ์ <strong>CONFIRM</strong> เพื่อยืนยัน</p>`,
         icon: 'error', input: 'text', inputPlaceholder: 'CONFIRM',
-        inputValidator: v => v !== 'CONFIRM' ? 'กรุณาพิมพ์ CONFIRM ให้ถูกต้อง' : undefined,
+        inputValidator: function(v) { return v !== 'CONFIRM' ? 'กรุณาพิมพ์ CONFIRM ให้ถูกต้อง' : undefined; },
         showCancelButton: true, confirmButtonColor: '#dc2626',
         confirmButtonText: 'ยืนยันลบทั้งหมด', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
+    }).then(function(r) {
         if (r.isConfirmed) {
             state = createDefaultState();
             currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
@@ -728,11 +803,14 @@ function clearAllPlayers() {
 // CORE LOGIC — GAMES
 // ============================================================
 function recordGame() {
-    const players = ['player1','player2','player3','player4'].map(id => document.getElementById(id).value).filter(Boolean);
+    const players = ['player1','player2','player3','player4'].map(function(id) { return document.getElementById(id).value; }).filter(Boolean);
     if (new Set(players).size !== 4) {
         Swal.fire({ icon: 'error', title: 'ผู้เล่นไม่ถูกต้อง', text: 'กรุณาเลือกผู้เล่น 4 คนที่ไม่ซ้ำกัน' }); return;
     }
-    const priceVal = parseFloat(document.getElementById('shuttlecockPrice').value);
+    
+    // โหลดราคาเริ่มต้นจาก Setting ถ้าราคาว่าง
+    const priceVal = parseFloat(document.getElementById('shuttlecockPrice').value) || state.settings.shuttlecockPrice || 0;
+    
     if (isNaN(priceVal) || priceVal < 0) {
         Swal.fire({ icon: 'error', title: 'ราคาไม่ถูกต้อง', text: 'กรุณากรอกราคาต่อลูก (≥ 0)' }); return;
     }
@@ -740,15 +818,15 @@ function recordGame() {
     if (!speedsStr) {
         Swal.fire({ icon: 'error', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกเบอร์ลูกที่ใช้' }); return;
     }
-    const speeds = speedsStr.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+    const speeds = speedsStr.split(/[,\s]+/).map(function(s) { return s.trim(); }).filter(Boolean);
     if (speeds.length === 0) {
         Swal.fire({ icon: 'error', title: 'ข้อมูลไม่ครบ', text: 'กรุณากรอกเบอร์ลูกให้ถูกต้อง' }); return;
     }
 
-    _isDailyDirty = true; // ดักจับเมื่อมีข้อมูลที่ยังไม่ได้บันทึก
+    _isDailyDirty = true; 
 
     getCurrentDailyData().games.push({
-        id: generateGameId(), players, shuttlecocksUsed: speeds.length,
+        id: generateGameId(), players: players, shuttlecocksUsed: speeds.length,
         shuttlecockPrice: priceVal, shuttlecockSpeeds: speeds
     });
     state.settings.shuttlecockPrice = priceVal;
@@ -761,34 +839,39 @@ function recordGame() {
 
 function removeGame(gameId) {
     Swal.fire({ title: 'ลบเกมนี้?', text: 'ค่าใช้จ่ายจะถูกคำนวณใหม่', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'ลบเลย!', cancelButtonText: 'ยกเลิก' })
-        .then(r => {
+        .then(function(r) {
             if (!r.isConfirmed) return;
             _isDailyDirty = true;
             const dd = getCurrentDailyData();
-            dd.games = dd.games.filter(g => g.id !== gameId);
+            dd.games = dd.games.filter(function(g) { return g.id !== gameId; });
             updateAndRender();
         });
 }
 
+// 🛡️ แก้ไขบั๊กเรียงลำดับในหน้า แก้ไขเกม โดยใช้ String(...)
 async function editGame(gameId) {
     const dd = getCurrentDailyData();
-    const game = dd.games.find(g => g.id === gameId);
+    const game = dd.games.find(function(g) { return g.id === gameId; });
     if (!game) return;
-    const presentPlayers = dd.players.filter(p => p.present).sort((a, b) => a.name.localeCompare(b, 'th'));
-    const opts = presentPlayers.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+    
+    // Sort แบบป้องกันบั๊ก
+    const presentPlayers = dd.players.filter(function(p) { return p.present; }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'th'); });
+    
+    const opts = presentPlayers.map(function(p) { return `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`; }).join('');
     const speedVal = (game.shuttlecockSpeeds || []).join(', ');
-    const makeSelect = (i) => `<div class="mb-2 text-left"><label style="font-size:13px;font-weight:600;color:#475569">ผู้เล่น ${i}</label><select id="ep${i}" class="swal2-select" style="margin:4px 0 0;">${opts}</select></div>`;
+    const makeSelect = function(i) { return `<div class="mb-2 text-left"><label style="font-size:13px;font-weight:600;color:#475569">ผู้เล่น ${i}</label><select id="ep${i}" class="swal2-select" style="margin:4px 0 0;">${opts}</select></div>`; };
+    
     const { value: fv, isConfirmed } = await Swal.fire({
         title: 'แก้ไขข้อมูลเกม', width: 480,
         html: `${[1,2,3,4].map(makeSelect).join('')}<div class="mt-2 text-left"><label style="font-size:13px;font-weight:600;color:#475569">เบอร์ลูก</label><input id="ep-speeds" class="swal2-input" value="${escapeHtml(speedVal)}" style="margin:4px 0 0;" placeholder="75, 76"></div>`,
         focusConfirm: false,
-        didOpen: () => { for (let i = 1; i <= 4; i++) { const s = document.getElementById(`ep${i}`); if (s) s.value = game.players[i-1] || ''; } },
-        preConfirm: () => {
-            const players = [1,2,3,4].map(i => document.getElementById(`ep${i}`).value).filter(Boolean);
-            const speeds = document.getElementById('ep-speeds').value.split(/[,\s]+/).map(s => s.trim()).filter(Boolean);
+        didOpen: function() { for (let i = 1; i <= 4; i++) { const s = document.getElementById(`ep${i}`); if (s) s.value = game.players[i-1] || ''; } },
+        preConfirm: function() {
+            const players = [1,2,3,4].map(function(i) { return document.getElementById(`ep${i}`).value; }).filter(Boolean);
+            const speeds = document.getElementById('ep-speeds').value.split(/[,\s]+/).map(function(s) { return s.trim(); }).filter(Boolean);
             if (new Set(players).size !== 4) { Swal.showValidationMessage('กรุณาเลือกผู้เล่น 4 คนที่ไม่ซ้ำ'); return false; }
             if (speeds.length === 0) { Swal.showValidationMessage('กรุณากรอกเบอร์ลูก'); return false; }
-            return { players, speeds };
+            return { players: players, speeds: speeds };
         }
     });
     if (isConfirmed && fv) {
@@ -801,16 +884,20 @@ async function editGame(gameId) {
 
 function moveGame(gameId, dir) {
     const dd = getCurrentDailyData();
-    const idx = dd.games.findIndex(g => g.id === gameId);
+    const idx = dd.games.findIndex(function(g) { return g.id === gameId; });
     const targetIdx = idx + dir;
     if (targetIdx < 0 || targetIdx >= dd.games.length) return;
-    [dd.games[idx], dd.games[targetIdx]] = [dd.games[targetIdx], dd.games[idx]];
+    
+    const temp = dd.games[idx];
+    dd.games[idx] = dd.games[targetIdx];
+    dd.games[targetIdx] = temp;
+    
     updateAndRender();
 }
 
 function togglePaidStatus(name) {
     const dd = getCurrentDailyData();
-    const player = dd.players.find(p => p.name === name);
+    const player = dd.players.find(function(p) { return p.name === name; });
     if (!player) return;
     const summary = calculateDailySummary();
     const pd = summary.playerDetails[name];
@@ -828,16 +915,16 @@ function calculateDailySummary() {
     const dd = getCurrentDailyData();
     const details = {};
 
-    dd.players.filter(p => p.present).forEach(p => {
+    dd.players.filter(function(p) { return p.present; }).forEach(function(p) {
         details[p.name] = { name: p.name, shuttlecockCost: 0, totalCost: 0, gamesPlayed: 0, paid: p.paid, gameIndices: [], shuttlecockSpeedsUsed: [], inGameOnly: false };
     });
 
-    dd.games.forEach(g => {
-        g.players.forEach(name => {
+    dd.games.forEach(function(g) {
+        g.players.forEach(function(name) {
             if (!details[name]) {
-                const playerRecord = dd.players.find(p => p.name === name);
+                const playerRecord = dd.players.find(function(p) { return p.name === name; });
                 details[name] = {
-                    name, shuttlecockCost: 0, totalCost: 0, gamesPlayed: 0,
+                    name: name, shuttlecockCost: 0, totalCost: 0, gamesPlayed: 0,
                     paid: playerRecord ? playerRecord.paid : false,
                     gameIndices: [], shuttlecockSpeedsUsed: [],
                     inGameOnly: true 
@@ -846,10 +933,10 @@ function calculateDailySummary() {
         });
     });
 
-    dd.games.forEach((g, idx) => {
+    dd.games.forEach(function(g, idx) {
         const price = g.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
         const costPer = (g.shuttlecocksUsed * price) / 4;
-        g.players.forEach(name => {
+        g.players.forEach(function(name) {
             if (details[name]) {
                 details[name].shuttlecockCost += costPer;
                 details[name].totalCost += costPer;
@@ -861,26 +948,29 @@ function calculateDailySummary() {
     });
 
     let grandTotal = 0;
-    Object.values(details).forEach(d => { grandTotal += d.totalCost; });
-    return { playerDetails: details, grandTotal };
+    Object.values(details).forEach(function(d) { grandTotal += d.totalCost; });
+    return { playerDetails: details, grandTotal: grandTotal };
 }
 
 function calculateOverallBalance() {
     const allNames = new Set([
         ...state.masterPlayerList,
-        ...state.allTransactions.map(t => t.name),
-        ...state.allPayments.map(p => p.name)
+        ...state.allTransactions.map(function(t) { return t.name; }),
+        ...state.allPayments.map(function(p) { return p.name; })
     ]);
     const summary = {};
-    allNames.forEach(name => { summary[name] = { name, totalDebt: 0, totalPaid: 0, balance: 0 }; });
+    allNames.forEach(function(name) { summary[name] = { name: name, totalDebt: 0, totalPaid: 0, balance: 0 }; });
+    
     let totalShuttlecock = 0;
-    state.allTransactions.forEach(t => {
+    state.allTransactions.forEach(function(t) {
         if (summary[t.name]) { summary[t.name].totalDebt += Number(t.totalCost || 0); totalShuttlecock += Number(t.shuttlecockCost || 0); }
     });
-    state.allPayments.forEach(p => { if (summary[p.name]) summary[p.name].totalPaid += Number(p.amount || 0); });
+    state.allPayments.forEach(function(p) { if (summary[p.name]) summary[p.name].totalPaid += Number(p.amount || 0); });
+    
     const report = { unpaid: [], withCredit: [], paidInFull: [] };
     let totalUnpaid = 0, totalCredit = 0;
-    Object.values(summary).forEach(item => {
+    
+    Object.values(summary).forEach(function(item) {
         item.balance = item.totalDebt - item.totalPaid;
         if (item.totalDebt > TOLERANCE || item.totalPaid > TOLERANCE) {
             if (item.balance > TOLERANCE) { report.unpaid.push(item); totalUnpaid += item.balance; }
@@ -888,18 +978,20 @@ function calculateOverallBalance() {
             else report.paidInFull.push(item);
         }
     });
-    report.unpaid.sort((a, b) => b.balance - a.balance);
-    report.withCredit.sort((a, b) => a.balance - b.balance);
-    report.paidInFull.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-    return { report, totalShuttlecock, totalUnpaid, totalCredit, playersCount: allNames.size };
+    report.unpaid.sort(function(a, b) { return b.balance - a.balance; });
+    report.withCredit.sort(function(a, b) { return a.balance - b.balance; });
+    report.paidInFull.sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'th'); });
+    
+    return { report: report, totalShuttlecock: totalShuttlecock, totalUnpaid: totalUnpaid, totalCredit: totalCredit, playersCount: allNames.size };
 }
 
 // ============================================================
 // CONFIRM & SAVE DAILY TO OVERALL
 // ============================================================
+// 🛡️ ปรับลอจิกให้ไม่ลบหนี้ Quick Debt ของวันนั้น
 function confirmDailySummaryAndSave() {
     const { playerDetails } = calculateDailySummary();
-    const withCosts = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0);
+    const withCosts = Object.values(playerDetails).filter(function(p) { return p.totalCost > TOLERANCE || p.gamesPlayed > 0; });
     if (withCosts.length === 0) { Swal.fire('ไม่พบข้อมูล', 'ยังไม่มีผู้เล่นที่มีค่าใช้จ่าย', 'info'); return; }
 
     Swal.fire({
@@ -907,49 +999,52 @@ function confirmDailySummaryAndSave() {
         html: `<p>ข้อมูลวันที่ <strong>${selectedDate}</strong> จะถูกบันทึกลงประวัติรวม</p><p class="text-sm text-gray-500 mt-1">(ถ้าเคยบันทึกวันนี้แล้วจะถูกอัปเดตโดยอัตโนมัติ)</p>`,
         icon: 'question', showCancelButton: true, confirmButtonColor: '#1d4ed8',
         confirmButtonText: 'ยืนยัน', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
+    }).then(function(r) {
         if (!r.isConfirmed) return;
         
-        state.allTransactions = state.allTransactions.filter(t => {
+        state.allTransactions = state.allTransactions.filter(function(t) {
             if (t.date !== selectedDate) return true;
-            if (t.source === 'quick_debt') return true;
+            if (t.source === 'quick_debt') return true; 
+            if (t.source === 'daily') return false; 
             if (!t.source && t.shuttlecockCost === 0) return true; 
-            if (!t.source) return false; 
             return false;
         });
 
-        state.allPayments = state.allPayments.filter(p => {
+        state.allPayments = state.allPayments.filter(function(p) {
             if (p.paymentDate !== selectedDate) return true;
             if (p.source === 'manual_payment') return true;
             if (p.source === 'daily') return false;
-            return true; 
+            return true;
         });
 
-        const transToAdd = withCosts.map(p => ({
-            date: selectedDate, name: p.name,
-            shuttlecockCost: parseFloat(p.shuttlecockCost.toFixed(2)),
-            totalCost: parseFloat(p.totalCost.toFixed(2)),
-            status: p.paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
-            source: 'daily'
-        }));
+        const transToAdd = withCosts.map(function(p) { 
+            return {
+                date: selectedDate, name: p.name,
+                shuttlecockCost: parseFloat(p.shuttlecockCost.toFixed(2)),
+                totalCost: parseFloat(p.totalCost.toFixed(2)),
+                status: p.paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย',
+                source: 'daily'
+            };
+        });
         
         const paymentsToAdd = withCosts
-            .filter(p => p.paid && p.totalCost > TOLERANCE)
-            .map(p => ({ 
-                timestamp: new Date().toISOString(), 
-                paymentDate: selectedDate, 
-                name: p.name, 
-                amount: parseFloat(p.totalCost.toFixed(2)),
-                source: 'daily'
-            }));
+            .filter(function(p) { return p.paid && p.totalCost > TOLERANCE; })
+            .map(function(p) { 
+                return { 
+                    timestamp: new Date().toISOString(), 
+                    paymentDate: selectedDate, 
+                    name: p.name, 
+                    amount: parseFloat(p.totalCost.toFixed(2)),
+                    source: 'daily'
+                };
+            });
 
         state.allTransactions.push(...transToAdd);
         state.allPayments.push(...paymentsToAdd);
         
-        _isDailyDirty = false; // รีเซ็ตสถานะแจ้งเตือนปิดหน้าเว็บ
+        _isDailyDirty = false; 
         updateAndRender();
 
-        // Auto-Snapshot Backup ป้องกันข้อมูลหาย
         try {
             localStorage.setItem(STORAGE_KEY + '_backup', JSON.stringify(state));
         } catch(e) { console.error('Auto Backup failed'); }
@@ -960,11 +1055,11 @@ function confirmDailySummaryAndSave() {
 
 function clearTodayData() {
     Swal.fire({ title: 'ล้างข้อมูลวันนี้?', text: 'เกมและการจ่ายเงินของวันนี้จะถูกล้างทั้งหมด', icon: 'warning', showCancelButton: true, confirmButtonColor: '#dc2626', confirmButtonText: 'ล้างเลย!', cancelButtonText: 'ยกเลิก' })
-        .then(r => {
+        .then(function(r) {
             if (!r.isConfirmed) return;
             const dd = getCurrentDailyData();
             dd.games = [];
-            dd.players.forEach(p => { p.paid = false; });
+            dd.players.forEach(function(p) { p.paid = false; });
             currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
             _isDailyDirty = false;
             updateAndRender();
@@ -972,44 +1067,73 @@ function clearTodayData() {
 }
 
 // ============================================================
-// PAYMENT MODAL
+// PAYMENT & QUICK DEBT MODALS
 // ============================================================
 function openPaymentModal(name, balance) {
-    document.getElementById('payment-name').textContent = name;
-    document.getElementById('payment-hidden-name').value = name;
-    document.getElementById('payment-amount').value = parseFloat(balance).toFixed(2);
-    document.getElementById('payment-modal').classList.remove('hidden');
-    setTimeout(() => document.getElementById('payment-amount').focus(), 100);
+    const elName = document.getElementById('payment-name');
+    const elHidden = document.getElementById('payment-hidden-name');
+    const elAmt = document.getElementById('payment-amount');
+    const elModal = document.getElementById('payment-modal');
+    
+    if(elName) elName.textContent = name;
+    if(elHidden) elHidden.value = name;
+    if(elAmt) elAmt.value = parseFloat(balance).toFixed(2);
+    if(elModal) elModal.classList.remove('hidden');
+    setTimeout(function() { if(elAmt) elAmt.focus(); }, 100);
 }
-function closePaymentModal() { document.getElementById('payment-modal').classList.add('hidden'); document.getElementById('payment-amount').value = ''; }
+
+function closePaymentModal() { 
+    const elModal = document.getElementById('payment-modal');
+    if(elModal) elModal.classList.add('hidden'); 
+    const elAmt = document.getElementById('payment-amount');
+    if(elAmt) elAmt.value = ''; 
+}
+
 function submitPayment() {
-    const name = document.getElementById('payment-hidden-name').value;
-    const amount = parseFloat(document.getElementById('payment-amount').value) || 0;
+    const elHidden = document.getElementById('payment-hidden-name');
+    const elAmt = document.getElementById('payment-amount');
+    
+    const name = elHidden ? elHidden.value : '';
+    const amount = elAmt ? (parseFloat(elAmt.value) || 0) : 0;
+    
     if (amount <= 0) { Swal.fire('ข้อผิดพลาด', 'จำนวนเงินต้องมากกว่า 0', 'error'); return; }
-    state.allPayments.push({ timestamp: new Date().toISOString(), paymentDate: getTodayString(), name, amount, source: 'manual_payment' });
+    state.allPayments.push({ timestamp: new Date().toISOString(), paymentDate: getTodayString(), name: name, amount: amount, source: 'manual_payment' });
     closePaymentModal();
     updateAndRender();
     Swal.fire({ icon: 'success', title: 'บันทึกการชำระเงินสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
 }
 
-// ============================================================
-// QUICK DEBT MODAL
-// ============================================================
 function openQuickDebtModal() {
     fillMasterPlayerDropdown('debt-player-name');
-    document.getElementById('debt-date').value = getTodayString();
-    document.getElementById('debt-amount').value = '';
-    document.getElementById('quick-debt-modal').classList.remove('hidden');
+    const elDate = document.getElementById('debt-date');
+    if(elDate) elDate.value = getTodayString();
+    
+    const elAmt = document.getElementById('debt-amount');
+    if(elAmt) elAmt.value = '';
+    
+    const elModal = document.getElementById('quick-debt-modal');
+    if(elModal) elModal.classList.remove('hidden');
 }
-function closeQuickDebtModal() { document.getElementById('quick-debt-modal').classList.add('hidden'); }
+
+function closeQuickDebtModal() { 
+    const elModal = document.getElementById('quick-debt-modal');
+    if(elModal) elModal.classList.add('hidden'); 
+}
+
 function submitDebt() {
-    const date = document.getElementById('debt-date').value;
-    const name = document.getElementById('debt-player-name').value;
-    const amount = parseFloat(document.getElementById('debt-amount').value) || 0;
+    const elDate = document.getElementById('debt-date');
+    const elName = document.getElementById('debt-player-name');
+    const elAmt = document.getElementById('debt-amount');
+    
+    const date = elDate ? elDate.value : '';
+    const name = elName ? elName.value : '';
+    const amount = elAmt ? (parseFloat(elAmt.value) || 0) : 0;
+    
     if (!name) { Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกชื่อผู้เล่น', 'error'); return; }
     if (!date) { Swal.fire('ข้อผิดพลาด', 'กรุณาเลือกวันที่', 'error'); return; }
     if (amount <= 0) { Swal.fire('ข้อผิดพลาด', 'ยอดหนี้ต้องมากกว่า 0', 'error'); return; }
-    state.allTransactions.push({ date, name, shuttlecockCost: 0, totalCost: parseFloat(amount.toFixed(2)), status: 'ยังไม่จ่าย', source: 'quick_debt' });
+    
+    state.allTransactions.push({ date: date, name: name, shuttlecockCost: 0, totalCost: parseFloat(amount.toFixed(2)), status: 'ยังไม่จ่าย', source: 'quick_debt' });
     closeQuickDebtModal();
     updateAndRender();
     Swal.fire({ icon: 'success', title: 'บันทึกหนี้สำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
@@ -1017,8 +1141,9 @@ function submitDebt() {
 
 function fillMasterPlayerDropdown(selectId) {
     const sel = document.getElementById(selectId);
+    if (!sel) return;
     sel.innerHTML = '<option value="">-- เลือกผู้เล่น --</option>' +
-        [...state.masterPlayerList].sort((a, b) => a.localeCompare(b, 'th')).map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+        [...state.masterPlayerList].sort(function(a, b) { return String(a).localeCompare(String(b), 'th'); }).map(function(n) { return `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`; }).join('');
 }
 
 // ============================================================
@@ -1033,24 +1158,31 @@ function renderAll() {
 }
 
 function renderPlayerList() {
-    const allNames = [...new Set([...state.masterPlayerList, ...getCurrentDailyData().players.map(p => p.name)])].sort((a, b) => a.localeCompare(b, 'th'));
+    const allNames = [...new Set([
+        ...state.masterPlayerList, 
+        ...getCurrentDailyData().players.map(function(p) { return p.name; })
+    ])].sort(function(a, b) { return String(a).localeCompare(String(b), 'th'); });
+    
     const container = document.getElementById('playerList');
+    if (!container) return;
+    
     if (allNames.length === 0) {
         container.innerHTML = '<div class="col-span-full text-center text-gray-400 py-4 text-sm">ยังไม่มีรายชื่อผู้เล่น กรุณาเพิ่มผู้เล่น</div>';
         return;
     }
-    container.innerHTML = allNames.map(name => {
+    
+    container.innerHTML = allNames.map(function(name) {
         const dd = getCurrentDailyData();
-        const player = dd.players.find(p => p.name === name);
+        const player = dd.players.find(function(p) { return p.name === name; });
         const isPresent = player ? player.present : false;
         const color = getPlayerColor(name);
         const stylePresent = `background:${color.bg};border-color:${color.border};color:${color.text};`;
         const styleAbsent = 'background:#f8fafc;border-color:#e2e8f0;color:#94a3b8;';
 
-        const colonIdx = name.indexOf(': ');
+        const colonIdx = String(name).indexOf(': ');
         const hasPrefix = colonIdx !== -1;
-        const prefix = hasPrefix ? name.substring(0, colonIdx) : '';
-        const shortName = hasPrefix ? name.substring(colonIdx + 2) : name;
+        const prefix = hasPrefix ? String(name).substring(0, colonIdx) : '';
+        const shortName = hasPrefix ? String(name).substring(colonIdx + 2) : name;
         const dataName = `data-name="${escapeHtml(name)}"`;
 
         const nameBlock = hasPrefix
@@ -1071,23 +1203,30 @@ function renderPlayerList() {
             </div>
         </div>`;
     }).join('');
+    
+    // รีฟิลเตอร์อัตโนมัติเพื่อให้ Filter คงอยู่
+    filterDailyPlayers();
 }
 
 function renderGameDropdowns() {
     const dd = getCurrentDailyData();
-    const present = dd.players.filter(p => p.present).sort((a, b) => a.name.localeCompare(b.name, 'th'));
-    const baseOpts = '<option value="">-- เลือกผู้เล่น --</option>' + present.map(p => `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`).join('');
+    const present = dd.players.filter(function(p) { return p.present; }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'th'); });
+    const baseOpts = '<option value="">-- เลือกผู้เล่น --</option>' + present.map(function(p) { return `<option value="${escapeHtml(p.name)}">${escapeHtml(p.name)}</option>`; }).join('');
     const selected = Object.values(currentGameSelection).filter(Boolean);
 
-    Object.keys(currentGameSelection).forEach(k => {
-        if (currentGameSelection[k] && !present.some(p => p.name === currentGameSelection[k])) currentGameSelection[k] = '';
+    Object.keys(currentGameSelection).forEach(function(k) {
+        if (currentGameSelection[k] && !present.some(function(p) { return p.name === currentGameSelection[k]; })) {
+            currentGameSelection[k] = '';
+        }
     });
 
-    ['player1','player2','player3','player4'].forEach(id => {
+    ['player1','player2','player3','player4'].forEach(function(id) {
         const sel = document.getElementById(id);
+        if (!sel) return;
         sel.innerHTML = baseOpts;
         sel.value = currentGameSelection[id] || '';
-        for (const opt of sel.options) {
+        for (let i=0; i<sel.options.length; i++) {
+            const opt = sel.options[i];
             if (opt.value) opt.disabled = selected.includes(opt.value) && opt.value !== sel.value;
         }
     });
@@ -1096,29 +1235,39 @@ function renderGameDropdowns() {
 function renderOverallSummaryStats() {
     const dd = getCurrentDailyData();
     const games = dd.games;
-    document.getElementById('totalGames').textContent = games.length;
-    const totalBalls = games.reduce((s, g) => s + (g.shuttlecocksUsed || 0), 0);
-    document.getElementById('totalShuttlecocks').textContent = totalBalls;
-    const counts = games.reduce((acc, g) => {
-        (g.shuttlecockSpeeds || []).forEach(sp => { const s = String(sp).trim(); if (s) acc[s] = (acc[s] || 0) + 1; });
+    const elGames = document.getElementById('totalGames');
+    if(elGames) elGames.textContent = games.length;
+    
+    const totalBalls = games.reduce(function(s, g) { return s + (g.shuttlecocksUsed || 0); }, 0);
+    const elBalls = document.getElementById('totalShuttlecocks');
+    if(elBalls) elBalls.textContent = totalBalls;
+    
+    const counts = games.reduce(function(acc, g) {
+        (g.shuttlecockSpeeds || []).forEach(function(sp) { const s = String(sp).trim(); if (s) acc[s] = (acc[s] || 0) + 1; });
         return acc;
     }, {});
     const summDiv = document.getElementById('shuttlecockSpeedSummary');
-    summDiv.innerHTML = Object.keys(counts).length
-        ? Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0])).map(([s, c]) => `<span>เบอร์ ${escapeHtml(s)}: <strong>${c}</strong> ลูก</span>`).join(' <span style="color:#cbd5e1">|</span> ')
-        : '<span style="color:#94a3b8">ยังไม่มีข้อมูล</span>';
+    if(summDiv) {
+        summDiv.innerHTML = Object.keys(counts).length
+            ? Object.entries(counts).sort(function(a, b) { return a[0].localeCompare(b[0]); }).map(function(entry) { return `<span>เบอร์ ${escapeHtml(entry[0])}: <strong>${entry[1]}</strong> ลูก</span>`; }).join(' <span style="color:#cbd5e1">|</span> ')
+            : '<span style="color:#94a3b8">ยังไม่มีข้อมูล</span>';
+    }
 }
 
 function renderGamesList() {
     const games = getCurrentDailyData().games;
     const container = document.getElementById('gamesList');
+    if(!container) return;
     if (!games.length) {
         container.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><i class="fas fa-table-tennis"></i>ยังไม่มีการบันทึกเกม</div>';
         return;
     }
-    container.innerHTML = games.map((game, idx) => {
-        const [p1, p2, p3, p4] = game.players;
-        const tag = (n) => n ? `<span class="player-tag" style="background:${getPlayerColor(n).tag}">${escapeHtml(n)}</span>` : '';
+    container.innerHTML = games.map(function(game, idx) {
+        const p1 = game.players[0];
+        const p2 = game.players[1];
+        const p3 = game.players[2];
+        const p4 = game.players[3];
+        const tag = function(n) { return n ? `<span class="player-tag" style="background:${getPlayerColor(n).tag}">${escapeHtml(n)}</span>` : ''; };
         const speedText = (game.shuttlecockSpeeds || []).join(', ') || 'N/A';
         const price = game.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
         const cost = ((game.shuttlecocksUsed || 0) * price / 4).toFixed(2);
@@ -1152,11 +1301,11 @@ function renderGamesList() {
 
 function renderDailySummaryTable() {
     const { playerDetails, grandTotal } = calculateDailySummary();
-    const all = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0).sort((a, b) => a.name.localeCompare(b.name, 'th'));
-    const unpaid = all.filter(p => !p.paid);
-    const paid = all.filter(p => p.paid);
+    const all = Object.values(playerDetails).filter(function(p) { return p.totalCost > TOLERANCE || p.gamesPlayed > 0; }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'th'); });
+    const unpaid = all.filter(function(p) { return !p.paid; });
+    const paid = all.filter(function(p) { return p.paid; });
 
-    const makeRow = (d) => `<tr${d.inGameOnly ? ' style="background:#fffbeb;"' : ''}>
+    const makeRow = function(d) { return `<tr${d.inGameOnly ? ' style="background:#fffbeb;"' : ''}>
         <td class="sticky-col" style="background:${d.inGameOnly ? '#fffbeb' : 'white'};font-weight:600;">
             ${escapeHtml(d.name)}
             ${d.inGameOnly ? '<span title="อยู่ในเกมแต่ไม่ได้ mark มาวันนี้" style="margin-left:4px;font-size:10px;background:#fef3c7;color:#92400e;padding:1px 6px;border-radius:10px;font-weight:600;">*เกม</span>' : ''}
@@ -1166,25 +1315,30 @@ function renderDailySummaryTable() {
         <td class="text-center" style="font-weight:700;">${d.totalCost.toFixed(2)}</td>
         <td class="text-center"><span class="badge ${d.paid ? 'badge-success' : 'badge-danger'}">${d.paid ? 'จ่ายแล้ว' : 'ยังไม่จ่าย'}</span></td>
         <td class="text-center"><button data-name="${escapeHtml(d.name)}" data-action="toggle-paid" class="btn btn-sm ${d.paid ? 'btn-secondary' : 'btn-warning'}" style="font-size:12px;">${d.paid ? 'ยกเลิก' : 'บันทึกจ่าย'}</button></td>
-    </tr>`;
+    </tr>`; };
 
     let unpaidHtml = '', paidHtml = '';
     if (unpaid.length) {
-        const tot = unpaid.reduce((s, p) => s + p.totalCost, 0);
+        const tot = unpaid.reduce(function(s, p) { return s + p.totalCost; }, 0);
         unpaidHtml = `<tr><td colspan="6" class="section-divider" style="background:#fef2f2;color:#b91c1c;border-bottom:1px solid #fecaca;">ยังไม่จ่าย (${unpaid.length} คน)</td></tr>`;
         unpaidHtml += unpaid.map(makeRow).join('');
         unpaidHtml += `<tr style="background:#fef2f2;font-weight:700;"><td class="sticky-col" colspan="3" style="background:#fef2f2;">รวม (ยังไม่จ่าย)</td><td class="text-center" style="color:#b91c1c;">${tot.toFixed(2)}</td><td colspan="2"></td></tr>`;
     }
     if (paid.length) {
-        const tot = paid.reduce((s, p) => s + p.totalCost, 0);
+        const tot = paid.reduce(function(s, p) { return s + p.totalCost; }, 0);
         paidHtml = `<tr><td colspan="6" class="section-divider" style="background:#f0fdf4;color:#15803d;border-bottom:1px solid #bbf7d0;">จ่ายแล้ว (${paid.length} คน)</td></tr>`;
         paidHtml += paid.map(makeRow).join('');
         paidHtml += `<tr style="background:#f0fdf4;font-weight:700;"><td class="sticky-col" colspan="3" style="background:#f0fdf4;">รวม (จ่ายแล้ว)</td><td class="text-center" style="color:#15803d;">${tot.toFixed(2)}</td><td colspan="2"></td></tr>`;
     }
 
-    document.getElementById('summaryTableUnpaid').innerHTML = unpaidHtml || (all.length === 0 ? `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i>ยังไม่มีข้อมูล</div></td></tr>` : '');
-    document.getElementById('summaryTablePaid').innerHTML = paidHtml;
-    document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+    const tUnpaid = document.getElementById('summaryTableUnpaid');
+    if(tUnpaid) tUnpaid.innerHTML = unpaidHtml || (all.length === 0 ? `<tr><td colspan="6"><div class="empty-state"><i class="fas fa-receipt"></i>ยังไม่มีข้อมูล</div></td></tr>` : '');
+    
+    const tPaid = document.getElementById('summaryTablePaid');
+    if(tPaid) tPaid.innerHTML = paidHtml;
+    
+    const gTotal = document.getElementById('grandTotal');
+    if(gTotal) gTotal.textContent = grandTotal.toFixed(2);
 }
 
 // ============================================================
@@ -1192,19 +1346,31 @@ function renderDailySummaryTable() {
 // ============================================================
 function renderAccountTab() {
     const { report, totalShuttlecock, totalUnpaid, totalCredit, playersCount } = calculateOverallBalance();
-    document.getElementById('account-summary-date').textContent = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
-    document.getElementById('total-unpaid-overall').textContent = formatCurrency(totalUnpaid);
-    document.getElementById('total-credit-overall').textContent = formatCurrency(totalCredit);
-    document.getElementById('total-shuttlecock-overall').textContent = formatCurrency(totalShuttlecock);
-    document.getElementById('players-count-overall').textContent = playersCount;
+    
+    const elDate = document.getElementById('account-summary-date');
+    if(elDate) elDate.textContent = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' });
+    
+    const elTUnpaid = document.getElementById('total-unpaid-overall');
+    if(elTUnpaid) elTUnpaid.textContent = formatCurrency(totalUnpaid);
+    
+    const elTCredit = document.getElementById('total-credit-overall');
+    if(elTCredit) elTCredit.textContent = formatCurrency(totalCredit);
+    
+    const elTShuttle = document.getElementById('total-shuttlecock-overall');
+    if(elTShuttle) elTShuttle.textContent = formatCurrency(totalShuttlecock);
+    
+    const elPCount = document.getElementById('players-count-overall');
+    if(elPCount) elPCount.textContent = playersCount;
+    
     fillMasterPlayerDropdown('debt-player-name');
 
-    const makeCard = (item) => {
+    const makeCard = function(item) {
         const balance = parseFloat(item.balance);
         let balHtml, action = '';
         if (balance > TOLERANCE) {
             balHtml = `<span style="font-weight:700;color:#dc2626;">ค้าง ${formatCurrency(balance)}</span>`;
-            action = `<button class="btn btn-success btn-sm pay-btn" data-name="${escapeHtml(item.name)}" data-balance="${balance.toFixed(2)}" style="font-size:12px;"><i class="fas fa-hand-holding-usd"></i>รับเงิน</button>`;
+            action = `<button class="btn btn-success btn-sm pay-btn" data-name="${escapeHtml(item.name)}" data-balance="${balance.toFixed(2)}" style="font-size:12px;"><i class="fas fa-hand-holding-usd"></i>รับเงิน</button>
+                      <button class="btn btn-sm" style="background:#00B900;color:white;font-size:12px;margin-left:4px;" onclick="sendPersonalLine('${escapeHtml(item.name)}', ${balance.toFixed(2)})"><i class="fab fa-line"></i>ทวงเงิน</button>`;
         } else if (balance < -TOLERANCE) {
             balHtml = `<span style="font-weight:700;color:#1d4ed8;">เครดิต ${formatCurrency(-balance)}</span>`;
         } else {
@@ -1222,45 +1388,61 @@ function renderAccountTab() {
         </div>`;
     };
 
-    const searchTerm = document.getElementById('searchAccountInput') ? document.getElementById('searchAccountInput').value.toLowerCase() : '';
-    const filterFn = item => item.name.toLowerCase().includes(searchTerm);
+    const sInput = document.getElementById('searchAccountInput');
+    const searchTerm = sInput ? String(sInput.value).toLowerCase() : '';
+    const filterFn = function(item) { return String(item.name).toLowerCase().includes(searchTerm); };
+    
     const displayUnpaid = report.unpaid.filter(filterFn);
     const displayCredit = report.withCredit.filter(filterFn);
     const displayPaidFull = report.paidInFull.filter(filterFn);
 
-    const empty = (txt) => `<div class="text-sm text-gray-400 py-2 px-1">${txt}</div>`;
-    document.getElementById('unpaid-list-overall').innerHTML = displayUnpaid.length ? displayUnpaid.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
-    document.getElementById('credit-list-overall').innerHTML = displayCredit.length ? displayCredit.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
-    document.getElementById('paid-in-full-list-overall').innerHTML = displayPaidFull.length ? displayPaidFull.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+    const empty = function(txt) { return `<div class="text-sm text-gray-400 py-2 px-1">${txt}</div>`; };
+    
+    const unList = document.getElementById('unpaid-list-overall');
+    if(unList) unList.innerHTML = displayUnpaid.length ? displayUnpaid.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+    
+    const crList = document.getElementById('credit-list-overall');
+    if(crList) crList.innerHTML = displayCredit.length ? displayCredit.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
+    
+    const pfList = document.getElementById('paid-in-full-list-overall');
+    if(pfList) pfList.innerHTML = displayPaidFull.length ? displayPaidFull.map(makeCard).join('') : empty('ไม่พบข้อมูล 🔍');
 }
 
 // ============================================================
 // RENDER — HISTORY
 // ============================================================
 function renderHistoryTab() {
-    const startDate = document.getElementById('summaryStartDate').value;
-    const endDate = document.getElementById('summaryEndDate').value;
-    document.getElementById('history-current-date').textContent = new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.';
+    const elStart = document.getElementById('summaryStartDate');
+    const startDate = elStart ? elStart.value : '';
+    
+    const elEnd = document.getElementById('summaryEndDate');
+    const endDate = elEnd ? elEnd.value : '';
+    
+    const elCurDate = document.getElementById('history-current-date');
+    if(elCurDate) elCurDate.textContent = new Date().toLocaleString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) + ' น.';
 
-    const filteredTx = state.allTransactions.filter(t => (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate));
-    const filteredPay = state.allPayments.filter(p => (!startDate || p.paymentDate >= startDate) && (!endDate || p.paymentDate <= endDate));
+    const filteredTx = state.allTransactions.filter(function(t) { return (!startDate || t.date >= startDate) && (!endDate || t.date <= endDate); });
+    const filteredPay = state.allPayments.filter(function(p) { return (!startDate || p.paymentDate >= startDate) && (!endDate || p.paymentDate <= endDate); });
 
     const summaries = {};
-    const names = new Set([...filteredTx.map(t => t.name), ...filteredPay.map(p => p.name)]);
-    names.forEach(name => { summaries[name] = { name, totalDebt: 0, totalPaid: 0, balance: 0, transactions: [], payments: [] }; });
-    filteredTx.forEach(t => { if (summaries[t.name]) { summaries[t.name].totalDebt += Number(t.totalCost || 0); summaries[t.name].transactions.push(t); } });
-    filteredPay.forEach(p => { if (summaries[p.name]) { summaries[p.name].totalPaid += Number(p.amount || 0); summaries[p.name].payments.push(p); } });
-    const all = Object.values(summaries).map(p => { p.balance = p.totalDebt - p.totalPaid; return p; }).filter(p => p.totalDebt > TOLERANCE || p.totalPaid > TOLERANCE);
-    const unpaid = all.filter(p => p.balance > TOLERANCE).sort((a, b) => b.balance - a.balance);
-    const paid = all.filter(p => p.balance <= TOLERANCE).sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    const names = new Set([...filteredTx.map(function(t){ return t.name; }), ...filteredPay.map(function(p){ return p.name; })]);
+    names.forEach(function(name) { summaries[name] = { name: name, totalDebt: 0, totalPaid: 0, balance: 0, transactions: [], payments: [] }; });
+    
+    filteredTx.forEach(function(t) { if (summaries[t.name]) { summaries[t.name].totalDebt += Number(t.totalCost || 0); summaries[t.name].transactions.push(t); } });
+    filteredPay.forEach(function(p) { if (summaries[p.name]) { summaries[p.name].totalPaid += Number(p.amount || 0); summaries[p.name].payments.push(p); } });
+    
+    const all = Object.values(summaries).map(function(p) { p.balance = p.totalDebt - p.totalPaid; return p; }).filter(function(p) { return p.totalDebt > TOLERANCE || p.totalPaid > TOLERANCE; });
+    const unpaid = all.filter(function(p) { return p.balance > TOLERANCE; }).sort(function(a, b) { return b.balance - a.balance; });
+    const paid = all.filter(function(p) { return p.balance <= TOLERANCE; }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'th'); });
 
     const contentDiv = document.getElementById('overall-summary-content');
+    if(!contentDiv) return;
     if (!all.length) { contentDiv.innerHTML = '<div class="empty-state"><i class="fas fa-calendar-times"></i>ไม่พบข้อมูลสำหรับช่วงวันที่ที่เลือก</div>'; return; }
 
     // คำนวณสถิติ
     let topSpender = { name: '-', amount: 0 };
     let topPaid = { name: '-', amount: 0 };
-    all.forEach(p => {
+    all.forEach(function(p) {
         if (p.totalDebt > topSpender.amount) { topSpender.amount = p.totalDebt; topSpender.name = p.name; }
         if (p.totalPaid > topPaid.amount) { topPaid.amount = p.totalPaid; topPaid.name = p.name; }
     });
@@ -1278,8 +1460,8 @@ function renderHistoryTab() {
         </div>
     `;
 
-    const makeHistoryTable = (players, colorScheme, label) => {
-        const total = players.reduce((s, p) => s + p.balance, 0);
+    const makeHistoryTable = function(players, colorScheme, label) {
+        const total = players.reduce(function(s, p) { return s + p.balance; }, 0);
         const colors = colorScheme === 'red'
             ? { head: '#fef2f2', headText: '#b91c1c', foot: '#fecaca', border: '#fca5a5' }
             : { head: '#f0fdf4', headText: '#15803d', foot: '#bbf7d0', border: '#86efac' };
@@ -1296,7 +1478,7 @@ function renderHistoryTab() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${players.map((p, i) => renderHistoryRow(p, colorScheme, i)).join('')}
+                        ${players.map(function(p, i) { return renderHistoryRow(p, colorScheme, i); }).join('')}
                     </tbody>
                     <tfoot style="background:${colors.foot};">
                         <tr>
@@ -1319,8 +1501,8 @@ function renderHistoryRow(player, color, suffix) {
     const detailId = `hd-${color}-${suffix}`;
     const balColor = player.balance > TOLERANCE ? '#b91c1c' : (player.balance < -TOLERANCE ? '#1d4ed8' : '#15803d');
     const balText = player.balance < -TOLERANCE ? `(${Math.abs(player.balance).toFixed(2)})` : player.balance.toFixed(2);
-    const sortedTx = [...player.transactions].sort((a, b) => new Date(b.date+'T00:00:00') - new Date(a.date+'T00:00:00'));
-    const sortedPay = [...player.payments].sort((a, b) => new Date(b.paymentDate+'T00:00:00') - new Date(a.paymentDate+'T00:00:00'));
+    const sortedTx = [...player.transactions].sort(function(a, b) { return new Date(b.date+'T00:00:00') - new Date(a.date+'T00:00:00'); });
+    const sortedPay = [...player.payments].sort(function(a, b) { return new Date(b.paymentDate+'T00:00:00') - new Date(a.paymentDate+'T00:00:00'); });
     return `
         <tr style="border-bottom:1px solid #f1f5f9;cursor:pointer;" data-detail-id="${detailId}" data-action="toggle-history">
             <td style="font-weight:600;">${escapeHtml(player.name)} <i class="fas fa-chevron-down" style="font-size:10px;color:#94a3b8;transition:transform .2s;"></i></td>
@@ -1337,7 +1519,7 @@ function renderHistoryRow(player, color, suffix) {
                             <div style="max-height:160px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;background:white;">
                                 <table class="data-table" style="font-size:12px;">
                                     <tbody>
-                                        ${sortedTx.length ? sortedTx.map(t => `<tr><td>${new Date(t.date+'T00:00:00').toLocaleDateString('th-TH')}</td><td class="text-right">${Number(t.totalCost).toFixed(2)} บ.</td><td class="text-center"><span class="badge ${t.status==='จ่ายแล้ว'?'badge-success':'badge-danger'}" style="font-size:11px;">${t.status||'ยังไม่จ่าย'}</span></td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">ไม่มีรายการ</td></tr>'}
+                                        ${sortedTx.length ? sortedTx.map(function(t) { return `<tr><td>${new Date(t.date+'T00:00:00').toLocaleDateString('th-TH')}</td><td class="text-right">${Number(t.totalCost).toFixed(2)} บ.</td><td class="text-center"><span class="badge ${t.status==='จ่ายแล้ว'?'badge-success':'badge-danger'}" style="font-size:11px;">${t.status||'ยังไม่จ่าย'}</span></td></tr>`; }).join('') : '<tr><td colspan="3" style="text-align:center;color:#94a3b8;">ไม่มีรายการ</td></tr>'}
                                     </tbody>
                                 </table>
                             </div>
@@ -1347,7 +1529,7 @@ function renderHistoryRow(player, color, suffix) {
                             <div style="max-height:160px;overflow-y:auto;border:1px solid #e2e8f0;border-radius:6px;background:white;">
                                 <table class="data-table" style="font-size:12px;">
                                     <tbody>
-                                        ${sortedPay.length ? sortedPay.map((p, pi) => {
+                                        ${sortedPay.length ? sortedPay.map(function(p, pi) {
                                             const payIdx = state.allPayments.indexOf(p);
                                             return `<tr>
                                                 <td>${new Date(p.paymentDate+'T00:00:00').toLocaleDateString('th-TH')}</td>
@@ -1387,10 +1569,15 @@ function toggleHistoryDetails(id, triggerRow) {
 // TAB MANAGEMENT
 // ============================================================
 function switchTab(name) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-    document.getElementById(`tab-${name}`).classList.remove('hidden');
-    document.querySelector(`[data-tab="${name}"]`).classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.add('hidden'); });
+    document.querySelectorAll('.tab-btn').forEach(function(btn) { btn.classList.remove('active'); });
+    
+    const content = document.getElementById(`tab-${name}`);
+    if(content) content.classList.remove('hidden');
+    
+    const btn = document.querySelector(`[data-tab="${name}"]`);
+    if(btn) btn.classList.add('active');
+    
     if (name === 'account') renderAccountTab();
     if (name === 'history') renderHistoryTab();
 }
@@ -1402,14 +1589,17 @@ function updateAndRender() {
     saveToStorage();
     renderAll();
     updateTabBadges();
-    const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
+    
+    const activeTabBtn = document.querySelector('.tab-btn.active');
+    const activeTab = activeTabBtn ? activeTabBtn.dataset.tab : null;
+    
     if (activeTab === 'account') renderAccountTab();
     if (activeTab === 'history') renderHistoryTab();
 }
 
 function updateTabBadges() {
     const { playerDetails } = calculateDailySummary();
-    const unpaidToday = Object.values(playerDetails).filter(p => !p.paid && p.totalCost > TOLERANCE).length;
+    const unpaidToday = Object.values(playerDetails).filter(function(p) { return !p.paid && p.totalCost > TOLERANCE; }).length;
     const badgeDaily = document.getElementById('badge-daily');
     if (badgeDaily) {
         if (unpaidToday > 0) { badgeDaily.textContent = unpaidToday; badgeDaily.style.display = 'inline-flex'; }
@@ -1429,24 +1619,25 @@ function useLastTeam() {
         Swal.fire({ icon: 'info', title: 'ยังไม่มีเกม', text: 'ยังไม่มีเกมที่บันทึกในวันนี้' }); return;
     }
     const lastGame = games[games.length - 1];
-    const presentNames = getCurrentDailyData().players.filter(p => p.present).map(p => p.name);
-    const missing = lastGame.players.filter(n => !presentNames.includes(n));
+    const presentNames = getCurrentDailyData().players.filter(function(p) { return p.present; }).map(function(p) { return p.name; });
+    const missing = lastGame.players.filter(function(n) { return !presentNames.includes(n); });
+    
     if (missing.length > 0) {
         Swal.fire({
             icon: 'warning', title: 'ผู้เล่นบางคนไม่ได้มาวันนี้',
             html: `<p>ผู้เล่นต่อไปนี้ไม่ได้ mark ว่ามาวันนี้:</p>
-                   <p style="font-weight:700;color:#dc2626;">${missing.map(n => escapeHtml(n)).join(', ')}</p>
+                   <p style="font-weight:700;color:#dc2626;">${missing.map(function(n) { return escapeHtml(n); }).join(', ')}</p>
                    <p style="margin-top:8px;">ต้องการใช้ทีมเดิมต่อไหม?</p>`,
             showCancelButton: true, confirmButtonText: 'ใช้ทีมเดิม', cancelButtonText: 'ยกเลิก',
             confirmButtonColor: '#1d4ed8'
-        }).then(r => { if (r.isConfirmed) applyLastTeam(lastGame.players); });
+        }).then(function(r) { if (r.isConfirmed) applyLastTeam(lastGame.players); });
     } else {
         applyLastTeam(lastGame.players);
     }
 }
 
 function applyLastTeam(players) {
-    ['player1','player2','player3','player4'].forEach((id, i) => {
+    ['player1','player2','player3','player4'].forEach(function(id, i) {
         currentGameSelection[id] = players[i] || '';
     });
     renderGameDropdowns();
@@ -1458,8 +1649,8 @@ function payAllUnpaid() {
     if (!report.unpaid.length) {
         Swal.fire({ icon: 'info', title: 'ไม่มีรายการค้าง', text: 'ทุกคนชำระครบแล้ว 🎉' }); return;
     }
-    const totalAmt = report.unpaid.reduce((s, p) => s + p.balance, 0);
-    const nameList = report.unpaid.map(p => `${escapeHtml(p.name)} (฿${p.balance.toFixed(2)})`).join('<br>');
+    const totalAmt = report.unpaid.reduce(function(s, p) { return s + p.balance; }, 0);
+    const nameList = report.unpaid.map(function(p) { return `${escapeHtml(p.name)} (฿${p.balance.toFixed(2)})`; }).join('<br>');
     Swal.fire({
         title: 'ชำระทั้งหมดพร้อมกัน?',
         html: `<p style="margin-bottom:10px;">บันทึกการชำระสำหรับทุกคนที่ค้างอยู่:</p>
@@ -1468,10 +1659,10 @@ function payAllUnpaid() {
         icon: 'question', showCancelButton: true,
         confirmButtonColor: '#16a34a',
         confirmButtonText: '✅ ยืนยันชำระทั้งหมด', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
+    }).then(function(r) {
         if (!r.isConfirmed) return;
         const today = getTodayString();
-        report.unpaid.forEach(item => {
+        report.unpaid.forEach(function(item) {
             state.allPayments.push({ timestamp: new Date().toISOString(), paymentDate: today, name: item.name, amount: parseFloat(item.balance.toFixed(2)), source: 'manual_payment' });
         });
         updateAndRender();
@@ -1480,182 +1671,272 @@ function payAllUnpaid() {
 }
 
 function applySettingsToUI() {
-    document.getElementById('shuttlecockPrice').value = state.settings.shuttlecockPrice || 0;
+    const el = document.getElementById('shuttlecockPrice');
+    if(el) el.value = state.settings.shuttlecockPrice || 0;
 }
 
 // ============================================================
-// INITIALIZATION
+// 🛡️ INITIALIZATION & EVENT BINDING (Safe Bind)
 // ============================================================
-document.addEventListener('DOMContentLoaded', () => {
+function bindEvents() {
+    
+    // 🛡️ 1. ปลดล็อคระบบค้นหา
+    const elDailySearch = document.getElementById('searchDailyPlayer');
+    if(elDailySearch) {
+        elDailySearch.addEventListener('input', filterDailyPlayers);
+    }
+    
+    const elWorkingDate = document.getElementById('workingDate');
+    if (elWorkingDate) {
+        elWorkingDate.addEventListener('change', function(e) {
+            selectedDate = e.target.value;
+            currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
+            ensureIntegrity();
+            try { updateAndRender(); } catch(err){ console.error(err); }
+        });
+    }
+
+    document.querySelectorAll('.tab-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() { switchTab(btn.dataset.tab); });
+    });
+
+    const btnAddP = document.getElementById('btnAddPlayer');
+    if(btnAddP) btnAddP.addEventListener('click', addPlayer);
+    
+    const inpNewP = document.getElementById('newPlayerName');
+    if(inpNewP) inpNewP.addEventListener('keypress', function(e) { if (e.key === 'Enter') addPlayer(); });
+
+    const btnClrTdy = document.getElementById('btnClearTodayPlayers');
+    if(btnClrTdy) btnClrTdy.addEventListener('click', clearTodayPlayers);
+    
+    const btnClrAll = document.getElementById('btnClearAllPlayers');
+    if(btnClrAll) btnClrAll.addEventListener('click', clearAllPlayers);
+
+    const btnRecGame = document.getElementById('btnRecordGame');
+    if(btnRecGame) btnRecGame.addEventListener('click', recordGame);
+    
+    const btnUseLast = document.getElementById('btnUseLastTeam');
+    if(btnUseLast) btnUseLast.addEventListener('click', useLastTeam);
+    
+    const btnPayAll = document.getElementById('btnPayAllUnpaid');
+    if(btnPayAll) btnPayAll.addEventListener('click', payAllUnpaid);
+    
+    const inpSpeed = document.getElementById('shuttlecockSpeeds');
+    if(inpSpeed) inpSpeed.addEventListener('keypress', function(e) { if (e.key === 'Enter') recordGame(); });
+
+    ['player1','player2','player3','player4'].forEach(function(id) {
+        const elPlayer = document.getElementById(id);
+        if(elPlayer) {
+            elPlayer.addEventListener('change', function(e) {
+                currentGameSelection[id] = e.target.value;
+                renderGameDropdowns();
+            });
+        }
+    });
+
+    const inpPrice = document.getElementById('shuttlecockPrice');
+    if(inpPrice) {
+        inpPrice.addEventListener('change', function(e) {
+            state.settings.shuttlecockPrice = Math.max(0, parseFloat(e.target.value) || 0);
+            saveToStorage();
+            renderDailySummaryTable();
+        });
+    }
+
+    const btnConfirm = document.getElementById('btnConfirmSave');
+    if(btnConfirm) btnConfirm.addEventListener('click', confirmDailySummaryAndSave);
+    
+    const btnClearTd = document.getElementById('btnClearToday');
+    if(btnClearTd) btnClearTd.addEventListener('click', clearTodayData);
+
+    const btnSaveFile = document.getElementById('btnSave');
+    if(btnSaveFile) btnSaveFile.addEventListener('click', saveToFile);
+    
+    const btnLoadFile = document.getElementById('loadFile');
+    if(btnLoadFile) btnLoadFile.addEventListener('change', loadFromFile);
+
+    const btnClosePay = document.getElementById('btnClosePayment');
+    if(btnClosePay) btnClosePay.addEventListener('click', closePaymentModal);
+    
+    const btnCancelPay = document.getElementById('btnCancelPayment');
+    if(btnCancelPay) btnCancelPay.addEventListener('click', closePaymentModal);
+    
+    const btnSubPay = document.getElementById('btnSubmitPayment');
+    if(btnSubPay) btnSubPay.addEventListener('click', submitPayment);
+    
+    const inpPayAmt = document.getElementById('payment-amount');
+    if(inpPayAmt) inpPayAmt.addEventListener('keypress', function(e) { if (e.key === 'Enter') submitPayment(); });
+
+    const btnOpenDebt = document.getElementById('btnOpenQuickDebt');
+    if(btnOpenDebt) btnOpenDebt.addEventListener('click', openQuickDebtModal);
+    
+    const btnCloseDebt = document.getElementById('btnCloseDebt');
+    if(btnCloseDebt) btnCloseDebt.addEventListener('click', closeQuickDebtModal);
+    
+    const btnCancelDebt = document.getElementById('btnCancelDebt');
+    if(btnCancelDebt) btnCancelDebt.addEventListener('click', closeQuickDebtModal);
+    
+    const btnSubDebt = document.getElementById('btnSubmitDebt');
+    if(btnSubDebt) btnSubDebt.addEventListener('click', submitDebt);
+
+    const btnCloseRen = document.getElementById('btnCloseRename');
+    if(btnCloseRen) btnCloseRen.addEventListener('click', closeRenameModal);
+    
+    const btnCancelRen = document.getElementById('btnCancelRename');
+    if(btnCancelRen) btnCancelRen.addEventListener('click', closeRenameModal);
+    
+    const btnSubRen = document.getElementById('btnSubmitRename');
+    if(btnSubRen) btnSubRen.addEventListener('click', submitRename);
+    
+    const inpRenName = document.getElementById('rename-new-name');
+    if(inpRenName) inpRenName.addEventListener('keypress', function(e) { if (e.key === 'Enter') submitRename(); });
+
+    const btnFiltHist = document.getElementById('btnFilterHistory');
+    if(btnFiltHist) btnFiltHist.addEventListener('click', renderHistoryTab);
+    
+    const btnRefHist = document.getElementById('btnRefreshHistory');
+    if(btnRefHist) btnRefHist.addEventListener('click', renderHistoryTab);
+
+    const btnExpGames = document.getElementById('btnExportGamesImg');
+    if(btnExpGames) btnExpGames.addEventListener('click', exportGamesImage);
+    
+    const btnExpSumm = document.getElementById('btnExportSummaryImg');
+    if(btnExpSumm) btnExpSumm.addEventListener('click', exportSummaryImage);
+    
+    const btnExpAccImg = document.getElementById('btnExportAccountImg');
+    if(btnExpAccImg) btnExpAccImg.addEventListener('click', exportAccountImage);
+    
+    const btnExpAccTxt = document.getElementById('btnExportAccountText');
+    if(btnExpAccTxt) btnExpAccTxt.addEventListener('click', exportAccountText);
+
+    ['payment-modal','quick-debt-modal','rename-modal'].forEach(function(id) {
+        const modal = document.getElementById(id);
+        if(modal) {
+            modal.addEventListener('click', function(e) { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
+        }
+    });
+
+    const elPlayerList = document.getElementById('playerList');
+    if(elPlayerList) {
+        elPlayerList.addEventListener('click', function(e) {
+            const actionEl = e.target.closest('[data-action]');
+            if (!actionEl) return;
+            const action = actionEl.dataset.action;
+            const name = actionEl.dataset.name;
+            if (!name) return;
+            if (action === 'toggle') {
+                if (!e.target.closest('button')) togglePlayerPresence(name);
+            } else if (action === 'rename') {
+                e.stopPropagation();
+                openRenameModal(name);
+            } else if (action === 'delete') {
+                e.stopPropagation();
+                deletePlayer(name);
+            }
+        });
+    }
+
+    const elTabAcc = document.getElementById('tab-account');
+    if(elTabAcc) {
+        elTabAcc.addEventListener('click', function(e) {
+            const btn = e.target.closest('.pay-btn');
+            if (!btn) return;
+            const name = btn.dataset.name;
+            const balance = btn.dataset.balance;
+            if (name && balance) openPaymentModal(name, balance);
+        });
+    }
+
+    const elGamesList = document.getElementById('gamesList');
+    if(elGamesList) {
+        elGamesList.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-game-id]');
+            if (!btn || btn.disabled) return;
+            const gameId = Number(btn.dataset.gameId);
+            const action = btn.dataset.action;
+            if (action === 'move-up')    moveGame(gameId, -1);
+            if (action === 'move-down')  moveGame(gameId,  1);
+            if (action === 'edit-game')  editGame(gameId);
+            if (action === 'remove-game') removeGame(gameId);
+        });
+    }
+
+    const elSummTab = document.getElementById('summaryTable');
+    if(elSummTab) {
+        elSummTab.addEventListener('click', function(e) {
+            const btn = e.target.closest('[data-action="toggle-paid"]');
+            if (!btn) return;
+            const name = btn.dataset.name;
+            if (name) togglePaidStatus(name);
+        });
+    }
+
+    const elOvSumm = document.getElementById('overall-summary-content');
+    if(elOvSumm) {
+        elOvSumm.addEventListener('click', function(e) {
+            const delBtn = e.target.closest('.del-payment-btn');
+            if (delBtn) {
+                e.stopPropagation();
+                const payIdx  = parseInt(delBtn.dataset.payIdx, 10);
+                const name    = delBtn.dataset.playerName;
+                const amount  = delBtn.dataset.amount;
+                const date    = delBtn.dataset.date;
+                deletePayment(payIdx, name, amount, date);
+                return;
+            }
+            const row = e.target.closest('[data-action="toggle-history"]');
+            if (!row) return;
+            const detailId = row.dataset.detailId;
+            if (detailId) toggleHistoryDetails(detailId, row);
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    
+    // 1. ผูกปุ่มทั้งหมดด้วย JS มาตรฐาน (ปลอดภัย 100%)
+    bindEvents();
+    
+    // 2. โหลดข้อมูล
     loadFromStorage();
     ensureIntegrity();
     syncGameIdCounter(); 
+    loadPromptPaySettings();
 
+    // 3. จัดการเวลา
     const today = getTodayString();
     selectedDate = today;
-    document.getElementById('workingDate').value = today;
-    document.getElementById('summaryEndDate').value = today;
+    
+    const wd = document.getElementById('workingDate');
+    if (wd) wd.value = today;
+    
+    const se = document.getElementById('summaryEndDate');
+    if (se) se.value = today;
+    
     const d = new Date(today); d.setDate(1);
-    document.getElementById('summaryStartDate').value = d.toISOString().split('T')[0];
+    const ss = document.getElementById('summaryStartDate');
+    if (ss) ss.value = d.toISOString().split('T')[0];
 
-    applySettingsToUI();
-    renderAll();
-    updateTabBadges();
-
-    // Event listener สำหรับช่องค้นหาชื่อหน้าบัญชี
-    document.getElementById('searchAccountInput')?.addEventListener('input', renderAccountTab);
-
-    // Date change
-    document.getElementById('workingDate').addEventListener('change', e => {
-        selectedDate = e.target.value;
-        currentGameSelection = { player1: '', player2: '', player3: '', player4: '' };
-        ensureIntegrity();
-        updateAndRender();
-    });
-
-    // Tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-    });
-
-    // Player add
-    document.getElementById('btnAddPlayer').addEventListener('click', addPlayer);
-    document.getElementById('newPlayerName').addEventListener('keypress', e => { if (e.key === 'Enter') addPlayer(); });
-
-    // Player management
-    document.getElementById('btnClearTodayPlayers').addEventListener('click', clearTodayPlayers);
-    document.getElementById('btnClearAllPlayers').addEventListener('click', clearAllPlayers);
-
-    // Game recording
-    document.getElementById('btnRecordGame').addEventListener('click', recordGame);
-    document.getElementById('btnUseLastTeam').addEventListener('click', useLastTeam);
-    document.getElementById('btnPayAllUnpaid').addEventListener('click', payAllUnpaid);
-    document.getElementById('shuttlecockSpeeds').addEventListener('keypress', e => { if (e.key === 'Enter') recordGame(); });
-
-    // Game dropdowns
-    ['player1','player2','player3','player4'].forEach(id => {
-        document.getElementById(id).addEventListener('change', e => {
-            currentGameSelection[id] = e.target.value;
-            renderGameDropdowns();
-        });
-    });
-
-    // Price setting
-    document.getElementById('shuttlecockPrice').addEventListener('change', e => {
-        state.settings.shuttlecockPrice = Math.max(0, parseFloat(e.target.value) || 0);
-        saveToStorage();
-        renderDailySummaryTable();
-    });
-
-    // Confirm & Clear
-    document.getElementById('btnConfirmSave').addEventListener('click', confirmDailySummaryAndSave);
-    document.getElementById('btnClearToday').addEventListener('click', clearTodayData);
-
-    // File save/load
-    document.getElementById('btnSave').addEventListener('click', saveToFile);
-    document.getElementById('loadFile').addEventListener('change', loadFromFile);
-
-    // Payment modal
-    document.getElementById('btnClosePayment').addEventListener('click', closePaymentModal);
-    document.getElementById('btnCancelPayment').addEventListener('click', closePaymentModal);
-    document.getElementById('btnSubmitPayment').addEventListener('click', submitPayment);
-    document.getElementById('payment-amount').addEventListener('keypress', e => { if (e.key === 'Enter') submitPayment(); });
-
-    // Quick debt modal
-    document.getElementById('btnOpenQuickDebt').addEventListener('click', openQuickDebtModal);
-    document.getElementById('btnCloseDebt').addEventListener('click', closeQuickDebtModal);
-    document.getElementById('btnCancelDebt').addEventListener('click', closeQuickDebtModal);
-    document.getElementById('btnSubmitDebt').addEventListener('click', submitDebt);
-
-    // Rename modal
-    document.getElementById('btnCloseRename').addEventListener('click', closeRenameModal);
-    document.getElementById('btnCancelRename').addEventListener('click', closeRenameModal);
-    document.getElementById('btnSubmitRename').addEventListener('click', submitRename);
-    document.getElementById('rename-new-name').addEventListener('keypress', e => { if (e.key === 'Enter') submitRename(); });
-
-    // History
-    document.getElementById('btnFilterHistory').addEventListener('click', renderHistoryTab);
-    document.getElementById('btnRefreshHistory').addEventListener('click', renderHistoryTab);
-
-    // Export buttons
-    document.getElementById('btnExportGamesImg').addEventListener('click', exportGamesImage);
-    document.getElementById('btnExportSummaryImg').addEventListener('click', exportSummaryImage);
-    document.getElementById('btnExportAccountImg').addEventListener('click', exportAccountImage);
-    document.getElementById('btnExportAccountText').addEventListener('click', exportAccountText);
-
-    // Close modals on overlay click
-    ['payment-modal','quick-debt-modal','rename-modal'].forEach(id => {
-        document.getElementById(id).addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.add('hidden'); });
-    });
-
-    // Event delegation player chips
-    document.getElementById('playerList').addEventListener('click', e => {
-        const actionEl = e.target.closest('[data-action]');
-        if (!actionEl) return;
-        const action = actionEl.dataset.action;
-        const name = actionEl.dataset.name;
-        if (!name) return;
-        if (action === 'toggle') {
-            if (!e.target.closest('button')) togglePlayerPresence(name);
-        } else if (action === 'rename') {
-            e.stopPropagation();
-            openRenameModal(name);
-        } else if (action === 'delete') {
-            e.stopPropagation();
-            deletePlayer(name);
+    // 4. วาดหน้าจอพร้อม Try/Catch ป้องกันจอดำ
+    try {
+        applySettingsToUI();
+        renderAll();
+        updateTabBadges();
+    } catch (e) {
+        console.error("Render Error:", e);
+        if(typeof Swal !== 'undefined') {
+            Swal.fire('ข้อผิดพลาดระบบ', 'พบปัญหาข้อมูลขัดข้อง กรุณากดปุ่ม "ล้างข้อมูลทั้งหมด" แล้วโหลดไฟล์สำรองใหม่', 'error');
+        } else {
+            alert('พบปัญหาข้อมูลขัดข้อง ระบบอาจทำงานไม่สมบูรณ์');
         }
-    });
+    }
 
-    // Event delegation account tab
-    document.getElementById('tab-account').addEventListener('click', e => {
-        const btn = e.target.closest('.pay-btn');
-        if (!btn) return;
-        const name = btn.dataset.name;
-        const balance = btn.dataset.balance;
-        if (name && balance) openPaymentModal(name, balance);
-    });
-
-    // Event delegation games list
-    document.getElementById('gamesList').addEventListener('click', e => {
-        const btn = e.target.closest('[data-game-id]');
-        if (!btn || btn.disabled) return;
-        const gameId = Number(btn.dataset.gameId);
-        const action = btn.dataset.action;
-        if (action === 'move-up')    moveGame(gameId, -1);
-        if (action === 'move-down')  moveGame(gameId,  1);
-        if (action === 'edit-game')  editGame(gameId);
-        if (action === 'remove-game') removeGame(gameId);
-    });
-
-    // Event delegation daily summary table
-    document.getElementById('summaryTable').addEventListener('click', e => {
-        const btn = e.target.closest('[data-action="toggle-paid"]');
-        if (!btn) return;
-        const name = btn.dataset.name;
-        if (name) togglePaidStatus(name);
-    });
-
-    // Event delegation history tab
-    document.getElementById('overall-summary-content').addEventListener('click', e => {
-        const delBtn = e.target.closest('.del-payment-btn');
-        if (delBtn) {
-            e.stopPropagation();
-            const payIdx  = parseInt(delBtn.dataset.payIdx, 10);
-            const name    = delBtn.dataset.playerName;
-            const amount  = delBtn.dataset.amount;
-            const date    = delBtn.dataset.date;
-            deletePayment(payIdx, name, amount, date);
-            return;
-        }
-        const row = e.target.closest('[data-action="toggle-history"]');
-        if (!row) return;
-        const detailId = row.dataset.detailId;
-        if (detailId) toggleHistoryDetails(detailId, row);
-    });
+    const elAccSearch = document.getElementById('searchAccountInput');
+    if(elAccSearch) elAccSearch.addEventListener('input', renderAccountTab);
 });
 
 // แจ้งเตือนเมื่อกำลังจะปิดแท็บแบบไม่บันทึก
-window.addEventListener('beforeunload', (e) => {
+window.addEventListener('beforeunload', function(e) {
     if (_isDailyDirty) {
         e.preventDefault();
         e.returnValue = 'คุณมีเกมที่บันทึกไว้แต่ยังไม่ได้ยืนยันลงบัญชีรวม แน่ใจหรือไม่ที่จะออกจากหน้านี้?';
@@ -1671,20 +1952,21 @@ function formatDateThai(dateStr) {
     return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+// 🛡️ อัปเดตเงื่อนไข iOS สำหรับ iPad รุ่นใหม่ๆ 
 async function captureAndDownload(element, filename) {
-    Swal.fire({ title: 'กำลังสร้างรูป...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    Swal.fire({ title: 'กำลังสร้างรูป...', allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
     try {
         const canvas = await html2canvas(element, {
             scale: 2.5,
             useCORS: true,
             backgroundColor: '#f1f5f9',
             logging: false,
-            onclone: (doc, el) => {
+            onclone: function(doc, el) {
                 el.style.fontFamily = "'Sarabun', sans-serif";
             }
         });
-        canvas.toBlob(blob => {
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        canvas.toBlob(function(blob) {
+            const isIOS = (/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) && !window.MSStream;
             if (isIOS) {
                 const url = URL.createObjectURL(blob);
                 Swal.fire({
@@ -1695,7 +1977,7 @@ async function captureAndDownload(element, filename) {
                     showCancelButton: true,
                     cancelButtonText: 'ปิด',
                     confirmButtonColor: '#1d4ed8'
-                }).then(r => {
+                }).then(function(r) {
                     if (r.isConfirmed) window.open(url, '_blank');
                     else URL.revokeObjectURL(url);
                 });
@@ -1722,67 +2004,44 @@ async function renderOffscreenAndCapture(buildFn, filename) {
     wrapper.style.cssText = 'position:fixed;left:-9999px;top:0;z-index:-1;width:800px;background:#f1f5f9;padding:20px;font-family:Sarabun,sans-serif;';
     document.body.appendChild(wrapper);
     buildFn(wrapper);
-    await new Promise(r => setTimeout(r, 100)); 
+    await new Promise(function(r) { setTimeout(r, 100); }); 
     await captureAndDownload(wrapper, filename);
     document.body.removeChild(wrapper);
 }
 
 // ============================================================
-// DELETE PAYMENT
-// ============================================================
-function deletePayment(payIdx, playerName, amount, date) {
-    if (payIdx < 0 || payIdx >= state.allPayments.length) {
-        Swal.fire('เกิดข้อผิดพลาด', 'ไม่พบรายการชำระนี้', 'error'); return;
-    }
-    Swal.fire({
-        title: 'ลบรายการชำระเงิน?',
-        html: `<p>ชื่อ: <strong>${escapeHtml(playerName)}</strong></p>
-               <p>จำนวน: <strong>฿${parseFloat(amount).toFixed(2)}</strong></p>
-               <p>วันที่: <strong>${new Date(date+'T00:00:00').toLocaleDateString('th-TH')}</strong></p>
-               <p style="color:#dc2626;margin-top:8px;font-size:13px;">⚠️ ยอดค้างชำระของผู้เล่นคนนี้จะเพิ่มขึ้น</p>`,
-        icon: 'warning', showCancelButton: true,
-        confirmButtonColor: '#dc2626',
-        confirmButtonText: 'ยืนยันลบ', cancelButtonText: 'ยกเลิก'
-    }).then(r => {
-        if (!r.isConfirmed) return;
-        state.allPayments.splice(payIdx, 1);
-        updateAndRender();
-        const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
-        if (activeTab === 'history') renderHistoryTab();
-        Swal.fire({ icon: 'success', title: 'ลบรายการชำระสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2500 });
-    });
-}
-
-// ─────────────────────────────────────────────
 // EXPORT 1: เกมที่บันทึกแล้ว → รูปภาพ
-// ─────────────────────────────────────────────
+// ============================================================
 function exportGamesImage() {
     const dd = getCurrentDailyData();
     if (!dd.games || dd.games.length === 0) {
         Swal.fire({ icon: 'info', title: 'ยังไม่มีเกม', text: 'ยังไม่มีข้อมูลเกมที่บันทึก' }); return;
     }
     const dateStr = formatDateThai(selectedDate);
-    const totalBalls = dd.games.reduce((s, g) => s + (g.shuttlecocksUsed || 0), 0);
+    const totalBalls = dd.games.reduce(function(s, g) { return s + (g.shuttlecocksUsed || 0); }, 0);
 
-    renderOffscreenAndCapture(wrapper => {
-        const speedCounts = dd.games.reduce((acc, g) => {
-            (g.shuttlecockSpeeds || []).forEach(s => { const k = String(s).trim(); if (k) acc[k] = (acc[k] || 0) + 1; });
+    renderOffscreenAndCapture(function(wrapper) {
+        const speedCounts = dd.games.reduce(function(acc, g) {
+            (g.shuttlecockSpeeds || []).forEach(function(s) { const k = String(s).trim(); if (k) acc[k] = (acc[k] || 0) + 1; });
             return acc;
         }, {});
-        const speedSummary = Object.entries(speedCounts).sort((a,b) => a[0].localeCompare(b[0])).map(([s,c]) => `เบอร์ ${s}: ${c} ลูก`).join(' | ');
+        const speedSummary = Object.entries(speedCounts).sort(function(a,b) { return a[0].localeCompare(b[0]); }).map(function(entry) { return `เบอร์ ${entry[0]}: ${entry[1]} ลูก`; }).join(' | ');
 
-        const gamesHTML = dd.games.map((g, idx) => {
+        const gamesHTML = dd.games.map(function(g, idx) {
             const price = g.shuttlecockPrice ?? state.settings.shuttlecockPrice ?? 0;
             const costEach = ((g.shuttlecocksUsed || 0) * price / 4).toFixed(2);
             const speeds = (g.shuttlecockSpeeds || []).join(', ');
-            const [p1,p2,p3,p4] = g.players;
-            const tag = (n, bg) => n ? `<span style="background:${bg};color:white;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;display:inline-block;margin:2px;">${n}</span>` : '';
+            const p1 = g.players[0];
+            const p2 = g.players[1];
+            const p3 = g.players[2];
+            const p4 = g.players[3];
+            const tag = function(n, bg) { return n ? `<span style="background:${bg};color:white;padding:3px 10px;border-radius:20px;font-size:13px;font-weight:700;display:inline-block;margin:2px;">${escapeHtml(n)}</span>` : ''; };
             const colors = ['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316'];
-            const col = (n) => { if (!n) return '#888'; const s = [...n].reduce((a,c) => a+c.charCodeAt(0),0); return colors[s % colors.length]; };
+            const col = function(n) { if (!n) return '#888'; const s = [...String(n)].reduce(function(a,c) { return a+c.charCodeAt(0); },0); return colors[s % colors.length]; };
             return `<div style="background:white;border-radius:12px;padding:14px 16px;margin-bottom:10px;border:1.5px solid #e2e8f0;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #f1f5f9;padding-bottom:8px;">
                     <span style="font-weight:800;font-size:15px;color:#374151;">เกมที่ ${idx + 1}</span>
-                    <span style="font-size:12px;color:#6b7280;">🏸 ${speeds} (${g.shuttlecocksUsed} ลูก @${price.toFixed(2)} บ.) · คนละ ${costEach} บ.</span>
+                    <span style="font-size:12px;color:#6b7280;">🏸 ${escapeHtml(speeds)} (${g.shuttlecocksUsed} ลูก @${price.toFixed(2)} บ.) · คนละ ${costEach} บ.</span>
                 </div>
                 <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
                     <span style="width:56px;font-weight:700;color:#3b82f6;font-size:13px;">ทีม A</span>
@@ -1809,7 +2068,7 @@ function exportGamesImage() {
                         <div style="font-size:12px;opacity:0.85;">ลูกทั้งหมด</div>
                     </div>
                     <div style="background:rgba(255,255,255,0.15);border-radius:10px;padding:8px 16px;flex:1;text-align:center;">
-                        <div style="font-size:13px;font-weight:600;">${speedSummary || '-'}</div>
+                        <div style="font-size:13px;font-weight:600;">${escapeHtml(speedSummary) || '-'}</div>
                         <div style="font-size:12px;opacity:0.85;">สรุปตามเบอร์</div>
                     </div>
                 </div>
@@ -1824,26 +2083,26 @@ function exportGamesImage() {
 // ─────────────────────────────────────────────
 function exportSummaryImage() {
     const { playerDetails, grandTotal } = calculateDailySummary();
-    const all = Object.values(playerDetails).filter(p => p.totalCost > TOLERANCE || p.gamesPlayed > 0).sort((a,b) => a.name.localeCompare(b.name,'th'));
+    const all = Object.values(playerDetails).filter(function(p) { return p.totalCost > TOLERANCE || p.gamesPlayed > 0; }).sort(function(a,b) { return String(a.name).localeCompare(String(b.name),'th'); });
     if (all.length === 0) {
         Swal.fire({ icon: 'info', title: 'ยังไม่มีข้อมูล', text: 'ยังไม่มีผู้เล่นที่มีค่าใช้จ่าย' }); return;
     }
     const dateStr = formatDateThai(selectedDate);
-    const unpaid = all.filter(p => !p.paid);
-    const paid = all.filter(p => p.paid);
+    const unpaid = all.filter(function(p) { return !p.paid; });
+    const paid = all.filter(function(p) { return p.paid; });
     const price = state.settings.shuttlecockPrice || 0;
 
-    const makeRow = (p, bg, textColor) => `
+    const makeRow = function(p, bg, textColor) { return `
         <tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:10px 14px;font-weight:600;color:${textColor};background:${bg};">${p.name}</td>
+            <td style="padding:10px 14px;font-weight:600;color:${textColor};background:${bg};">${escapeHtml(p.name)}</td>
             <td style="padding:10px 14px;text-align:center;color:#374151;background:${bg};font-size:13px;">${p.gameIndices.join(', ') || '-'}</td>
             <td style="padding:10px 14px;text-align:right;font-weight:800;color:${textColor};background:${bg};font-size:15px;">${p.totalCost.toFixed(2)}</td>
             <td style="padding:10px 14px;text-align:center;background:${bg};"><span style="background:${p.paid?'#dcfce7':'#fee2e2'};color:${p.paid?'#15803d':'#b91c1c'};padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;">${p.paid?'จ่ายแล้ว':'ยังไม่จ่าย'}</span></td>
-        </tr>`;
+        </tr>`; };
 
-    const makeSection = (players, label, headerBg, headerColor, rowBg, rowText, totalBg) => {
+    const makeSection = function(players, label, headerBg, headerColor, rowBg, rowText, totalBg) {
         if (!players.length) return '';
-        const tot = players.reduce((s,p) => s+p.totalCost, 0);
+        const tot = players.reduce(function(s,p) { return s+p.totalCost; }, 0);
         return `
             <div style="margin-bottom:16px;">
                 <div style="background:${headerBg};padding:8px 16px;border-radius:8px 8px 0 0;font-weight:700;font-size:14px;color:${headerColor};">${label}</div>
@@ -1858,7 +2117,7 @@ function exportSummaryImage() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${players.map(p => makeRow(p, rowBg, rowText)).join('')}
+                            ${players.map(function(p) { return makeRow(p, rowBg, rowText); }).join('')}
                         </tbody>
                         <tfoot>
                             <tr style="background:${totalBg};">
@@ -1872,7 +2131,7 @@ function exportSummaryImage() {
             </div>`;
     };
 
-    renderOffscreenAndCapture(wrapper => {
+    renderOffscreenAndCapture(function(wrapper) {
         wrapper.innerHTML = `
             <div style="background:linear-gradient(135deg,#0f766e,#0d9488);border-radius:16px;padding:20px 24px;margin-bottom:16px;color:white;">
                 <div style="font-size:22px;font-weight:800;margin-bottom:4px;">🧾 สรุปค่าใช้จ่ายประจำวัน</div>
@@ -1904,7 +2163,7 @@ function exportSummaryImage() {
 }
 
 // ─────────────────────────────────────────────
-// EXPORT 3A: บัญชีรวม → รูปภาพ (ค้างชำระ + เครดิต)
+// EXPORT 3A: บัญชีรวม → รูปภาพ
 // ─────────────────────────────────────────────
 function exportAccountImage() {
     const { report, totalUnpaid, totalCredit } = calculateOverallBalance();
@@ -1913,18 +2172,18 @@ function exportAccountImage() {
     }
     const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
 
-    const makePersonRow = (item, i) => {
+    const makePersonRow = function(item, i) {
         const balance = Math.abs(item.balance);
         return `<div style="display:flex;justify-content:space-between;align-items:center;padding:11px 16px;border-bottom:1px solid rgba(0,0,0,0.05);background:${i%2===0?'white':'#fafafa'};">
             <div>
-                <div style="font-weight:700;font-size:14px;color:#1e293b;">${i+1}. ${item.name}</div>
+                <div style="font-weight:700;font-size:14px;color:#1e293b;">${i+1}. ${escapeHtml(item.name)}</div>
                 <div style="font-size:11px;color:#94a3b8;margin-top:1px;">เรียกเก็บ ฿${item.totalDebt.toFixed(2)} · จ่ายแล้ว ฿${item.totalPaid.toFixed(2)}</div>
             </div>
             <div style="font-size:16px;font-weight:800;">฿${balance.toFixed(2)}</div>
         </div>`;
     };
 
-    renderOffscreenAndCapture(wrapper => {
+    renderOffscreenAndCapture(function(wrapper) {
         const unpaidBlock = report.unpaid.length ? `
             <div style="margin-bottom:16px;">
                 <div style="background:#dc2626;color:white;padding:12px 18px;border-radius:12px 12px 0 0;display:flex;justify-content:space-between;align-items:center;">
@@ -1932,7 +2191,7 @@ function exportAccountImage() {
                     <div style="text-align:right;"><div style="font-size:20px;font-weight:800;">฿${totalUnpaid.toFixed(2)}</div><div style="font-size:11px;opacity:0.85;">รวมที่ค้าง</div></div>
                 </div>
                 <div style="border:2px solid #fecaca;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
-                    ${report.unpaid.map((item, i) => makePersonRow(item, i)).join('')}
+                    ${report.unpaid.map(function(item, i) { return makePersonRow(item, i); }).join('')}
                 </div>
             </div>` : '';
 
@@ -1943,7 +2202,7 @@ function exportAccountImage() {
                     <div style="text-align:right;"><div style="font-size:20px;font-weight:800;">฿${totalCredit.toFixed(2)}</div><div style="font-size:11px;opacity:0.85;">รวมเครดิต</div></div>
                 </div>
                 <div style="border:2px solid #bfdbfe;border-top:none;border-radius:0 0 12px 12px;overflow:hidden;">
-                    ${report.withCredit.map((item, i) => makePersonRow(item, i)).join('')}
+                    ${report.withCredit.map(function(item, i) { return makePersonRow(item, i); }).join('')}
                 </div>
             </div>` : '';
 
@@ -1972,8 +2231,8 @@ function exportAccountText() {
     if (report.unpaid.length > 0) {
         text += `\n⚠️ ยังค้างชำระ (${report.unpaid.length} คน)\n`;
         text += `${'─'.repeat(28)}\n`;
-        report.unpaid.forEach((item, i) => {
-            const nameStr = item.name.padEnd(16, ' ');
+        report.unpaid.forEach(function(item, i) {
+            const nameStr = String(item.name).padEnd(16, ' ');
             text += `${i+1}. ${nameStr}฿${item.balance.toFixed(2)}\n`;
         });
         text += `${'─'.repeat(28)}\n`;
@@ -1985,8 +2244,8 @@ function exportAccountText() {
     if (report.withCredit.length > 0) {
         text += `\n💰 มีเครดิต (${report.withCredit.length} คน)\n`;
         text += `${'─'.repeat(28)}\n`;
-        report.withCredit.forEach((item, i) => {
-            const nameStr = item.name.padEnd(16, ' ');
+        report.withCredit.forEach(function(item, i) {
+            const nameStr = String(item.name).padEnd(16, ' ');
             text += `${i+1}. ${nameStr}฿${Math.abs(item.balance).toFixed(2)}\n`;
         });
         text += `${'─'.repeat(28)}\n`;
@@ -1994,13 +2253,13 @@ function exportAccountText() {
     }
 
     if (report.paidInFull.length > 0) {
-        text += `\n✅ ชำระครบแล้ว: ${report.paidInFull.map(p => p.name).join(', ')}\n`;
+        text += `\n✅ ชำระครบแล้ว: ${report.paidInFull.map(function(p) { return p.name; }).join(', ')}\n`;
     }
 
     text += `\n🏸 สร้างโดยโปรแกรมคำนวณค่าลูกแบดมินตัน`;
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(() => {
+        navigator.clipboard.writeText(text).then(function() {
             Swal.fire({
                 icon: 'success',
                 title: 'คัดลอกสำเร็จ!',
@@ -2009,7 +2268,7 @@ function exportAccountText() {
                 confirmButtonText: 'เข้าใจแล้ว',
                 confirmButtonColor: '#06b6d4'
             });
-        }).catch(() => fallbackCopyText(text));
+        }).catch(function() { fallbackCopyText(text); });
     } else {
         fallbackCopyText(text);
     }
@@ -2022,21 +2281,95 @@ function fallbackCopyText(text) {
                <textarea id="swal-copy-area" style="width:100%;height:180px;font-size:12px;border:1px solid #e2e8f0;border-radius:8px;padding:8px;font-family:monospace;resize:none;">${text}</textarea>`,
         confirmButtonText: 'ปิด',
         confirmButtonColor: '#06b6d4',
-        didOpen: () => {
+        didOpen: function() {
             const ta = document.getElementById('swal-copy-area');
-            ta.select();
-            try { document.execCommand('copy'); } catch(e) {}
+            if(ta) {
+                ta.select();
+                try { document.execCommand('copy'); } catch(e) {}
+            }
         }
     });
 }
 
-// ลงทะเบียน Service Worker สำหรับ PWA
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
+  window.addEventListener('load', function() {
     navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('Service Worker Registered'))
-      .catch(err => console.log('Service Worker Failed', err));
+      .then(function() { console.log('Service Worker Registered'); })
+      .catch(function(err) { console.log('Service Worker Failed', err); });
   });
+}
+
+// ============================================================
+// 🛡️ ปลดล็อคระบบค้นหา
+// ============================================================
+function filterDailyPlayers() {
+    const elSearch = document.getElementById('searchDailyPlayer');
+    if(!elSearch) return;
+    
+    const term = String(elSearch.value).toLowerCase();
+    const chips = document.querySelectorAll('#playerList .player-chip');
+    
+    chips.forEach(function(chip) {
+        const nameData = String(chip.getAttribute('data-name') || '').toLowerCase();
+        const nameText = String(chip.innerText || '').toLowerCase();
+        
+        if (nameData.includes(term) || nameText.includes(term)) {
+            chip.classList.remove('hidden');
+            chip.style.display = 'flex';
+        } else {
+            chip.classList.add('hidden');
+            chip.style.display = 'none';
+        }
+    });
+}
+
+function savePromptPaySettings() {
+    const elName = document.getElementById('settingBankName');
+    const elNum = document.getElementById('settingBankNumber');
+    const data = {
+        name: elName ? elName.value : '',
+        number: elNum ? elNum.value : ''
+    };
+    localStorage.setItem('badminton_promptpay', JSON.stringify(data));
+    Swal.fire({ icon: 'success', title: 'บันทึกสำเร็จ', toast: true, position: 'top-end', showConfirmButton: false, timer: 2000 });
+}
+
+function loadPromptPaySettings() {
+    const saved = localStorage.getItem('badminton_promptpay');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            const elName = document.getElementById('settingBankName');
+            const elNum = document.getElementById('settingBankNumber');
+            if(elName) elName.value = data.name || '';
+            if(elNum) elNum.value = data.number || '';
+        } catch(e){}
+    }
+}
+
+function sendPersonalLine(name, balance) {
+    const elName = document.getElementById('settingBankName');
+    const elNum = document.getElementById('settingBankNumber');
+    
+    const bankName = elName ? elName.value : '';
+    const bankNumber = elNum ? elNum.value : '';
+    const dateStr = new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+    
+    let message = `🏸 สวัสดีครับคุณ ${name}\n`;
+    message += `แจ้งสรุปยอดค่าสนาม/ลูกแบด (${dateStr})\n`;
+    message += `--------------------------\n`;
+    message += `💰 ยอดค้างชำระ: ฿${parseFloat(balance).toLocaleString('th-TH', {minimumFractionDigits: 2})}\n`;
+    
+    if (bankNumber) {
+        message += `--------------------------\n`;
+        message += `โอนได้ที่: ${bankNumber}\n`;
+        if (bankName) message += `ชื่อบัญชี: ${bankName}\n`;
+    }
+    message += `--------------------------\n`;
+    message += `โอนแล้วรบกวนแจ้งสลิปด้วยนะครับ ขอบคุณครับ 🙏`;
+
+    const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(message)}`;
+    window.open(lineUrl, '_blank');
 }
 </script>
 </body>
